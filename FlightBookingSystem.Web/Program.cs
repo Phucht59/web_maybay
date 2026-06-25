@@ -8,9 +8,15 @@ builder.Services.AddControllersWithViews();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString)
-           .EnableSensitiveDataLogging() // Hiển thị giá trị tham số trong câu SQL
-           .LogTo(Console.WriteLine, LogLevel.Information)); // Bật log SQL ra console
+{
+    options.UseSqlite(connectionString);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging()
+            .LogTo(Console.WriteLine, LogLevel.Information);
+    }
+});
 
 var app = builder.Build();
 
