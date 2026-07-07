@@ -1,0 +1,21 @@
+/* =========================
+   Component: Buttons
+   Dùng cho các nút lặp lại trong Admin/Auth/Flight pages.
+   Page-specific files có thể mở rộng thêm khi cần.
+   ========================= */
+
+.btn-clean {
+    border: 0;
+    background: transparent;
+    text-decoration: none;
+}
+
+.btn-primary-app {
+    background: var(--color-primary);
+    color: #FFFFFF;
+}
+
+    .btn-primary-app:hover {
+        background: var(--color-primary-dark);
+        color: #FFFFFF;
+    }

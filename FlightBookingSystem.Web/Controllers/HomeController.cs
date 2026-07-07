@@ -1,31 +1,51 @@
-using System.Diagnostics;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FlightBookingSystem.Web.Models;
 
 namespace FlightBookingSystem.Web.Controllers;
 
-public class HomeController : Controller
+[ApiController]
+[Route("api/[controller]")]
+[AllowAnonymous]
+public class HomeController : ControllerBase
 {
-    private readonly ILogger<HomeController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(IWebHostEnvironment environment)
     {
-        _logger = logger;
+        _environment = environment;
     }
 
-    public IActionResult Index()
+    [HttpGet]
+    public IActionResult GetApiInfo()
     {
-        return View();
+        return Ok(new
+        {
+            application = "Flight Booking System API",
+            status = "Running",
+            environment = _environment.EnvironmentName,
+            serverTime = DateTime.Now,
+            documentation = "/swagger"
+        });
     }
 
-    public IActionResult Privacy()
+    [HttpGet("health")]
+    public IActionResult HealthCheck()
     {
-        return View();
+        return Ok(new
+        {
+            status = "Healthy",
+            checkedAt = DateTime.Now
+        });
     }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
+    [HttpGet("~/")]
+    public IActionResult Root()
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        return Ok(new
+        {
+            application = "Flight Booking System API",
+            message = "API đang hoạt động. Mở /swagger để test các endpoint.",
+            documentation = "/swagger"
+        });
     }
 }

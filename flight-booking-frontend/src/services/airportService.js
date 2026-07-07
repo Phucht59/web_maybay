@@ -1,0 +1,95 @@
+import axiosClient from "./axiosClient";
+
+const extractErrorMessage = (error) => {
+  const data = error?.response?.data;
+
+  if (!data) return "Có lỗi xảy ra. Vui lòng thử lại.";
+  if (typeof data === "string") return data;
+  if (data.message) return data.message;
+
+  const firstModelStateError = Object.values(data)
+    .flat()
+    .find((item) => typeof item === "string");
+
+  return firstModelStateError || "Có lỗi xảy ra. Vui lòng kiểm tra lại dữ liệu.";
+};
+
+export const extractAirportFieldErrors = (error) => {
+  const data = error?.response?.data;
+  if (!data || typeof data !== "object" || typeof data === "string") return {};
+
+  return Object.entries(data).reduce((result, [key, value]) => {
+    const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
+    const messages = Array.isArray(value) ? value : [value];
+    const message = messages.find((item) => typeof item === "string");
+
+    if (message) result[fieldName] = message;
+    return result;
+  }, {});
+};
+
+const normalizeListResponse = (payload) => ({
+  items: payload?.data || [],
+  pagination: payload?.pagination || {
+    page: 1,
+    pageSize: 5,
+    totalCount: 0,
+    totalPages: 1,
+    startItem: 0,
+    endItem: 0,
+  },
+  filters: payload?.filters || {},
+});
+
+export const airportService = {
+  getAll: async ({ tuKhoa, page } = {}) => {
+    const response = await axiosClient.get("/SanBay", {
+      params: {
+        tuKhoa: tuKhoa || undefined,
+        page: page || undefined,
+      },
+    });
+
+    return normalizeListResponse(response.data);
+  },
+
+  getById: async (id, { khoangThoiGian } = {}) => {
+    const response = await axiosClient.get(`/SanBay/${id}`, {
+      params: {
+        khoangThoiGian: khoangThoiGian || undefined,
+      },
+    });
+
+    return response.data;
+  },
+
+  create: async (payload) => {
+    try {
+      const response = await axiosClient.post("/SanBay", payload);
+      return response.data;
+    } catch (error) {
+      error.userMessage = extractErrorMessage(error);
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    try {
+      const response = await axiosClient.put(`/SanBay/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      error.userMessage = extractErrorMessage(error);
+      throw error;
+    }
+  },
+
+  remove: async (id) => {
+    try {
+      const response = await axiosClient.delete(`/SanBay/${id}`);
+      return response.data;
+    } catch (error) {
+      error.userMessage = extractErrorMessage(error);
+      throw error;
+    }
+  },
+};

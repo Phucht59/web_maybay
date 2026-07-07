@@ -1,0 +1,45 @@
+@import "./styles/base/reset.css";
+@import "./styles/base/tokens.css";
+@import "./styles/base/typography.css";
+
+@import "./styles/components/alerts.css";
+@import "./styles/components/badges.css";
+@import "./styles/components/buttons.css";
+@import "./styles/components/forms.css";
+@import "./styles/components/tables.css";
+@import "./styles/components/toasts.css";
+
+@import "./styles/layouts/admin-layout.css";
+
+@import "./styles/pages/auth.css";
+@import "./styles/pages/dashboard.css";
+@import "./styles/pages/master-data.css";
+@import "./styles/pages/airport.css";
+@import "./styles/pages/airline.css";
+@import "./styles/pages/aircraft.css";
+@import "./styles/pages/seatclass.css";
+@import "./styles/pages/route.css";
+@import "./styles/pages/seatmap.css";
+@import "./styles/pages/flight-management.css";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-family: Inter, Roboto, "Segoe UI", Arial, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}

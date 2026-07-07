@@ -1,0 +1,9 @@
+/* =========================
+   Component: Alerts
+   ========================= */
+
+.app-alert {
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+}

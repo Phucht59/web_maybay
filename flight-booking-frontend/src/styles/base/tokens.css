@@ -1,0 +1,38 @@
+:root {
+    /* Brand colors */
+    --color-primary: #004E5C;
+    --color-primary-dark: #003B46;
+    --color-primary-soft: #0A6170;
+    --color-secondary: #7E5700;
+    /* Neutral palette */
+    --color-bg: #F0F2F5;
+    --color-surface: #FFFFFF;
+    --color-border: #E3E7EB;
+    --color-heading: #0B1220;
+    --color-text: #111827;
+    --color-muted: #6B7280;
+    --color-muted-light: #8C8C8C;
+    --color-danger: #B42318;
+    /* Auth tokens */
+    --auth-primary: var(--color-primary);
+    --auth-secondary: var(--color-secondary);
+    --auth-heading: #1A1A1A;
+    --auth-body: #666666;
+    --auth-muted: #8C8C8C;
+    --auth-border: #D9D9D9;
+    --auth-danger: #B42318;
+    --auth-panel: #035766;
+    /* Admin tokens */
+    --admin-primary: var(--color-primary);
+    --admin-primary-dark: var(--color-primary-dark);
+    --admin-primary-soft: var(--color-primary-soft);
+    --admin-secondary: var(--color-secondary);
+    --admin-bg: var(--color-bg);
+    --admin-card: var(--color-surface);
+    --admin-border: var(--color-border);
+    --admin-text: var(--color-text);
+    --admin-muted: var(--color-muted);
+    --admin-sidebar-muted: #A6BFC3;
+    --admin-sidebar-width: 250px;
+    --admin-topbar-height: 64px;
+}

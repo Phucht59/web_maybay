@@ -1,0 +1,500 @@
+/* =========================
+   Page-specific: Hãng bay
+   Chỉ giữ phần đặc thù của module Hãng bay.
+   Layout CRUD chung nằm trong master-data.css.
+   ========================= */
+
+.airline-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+}
+
+    .airline-name-cell strong {
+        display: block;
+        color: #111827;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .airline-name-cell small {
+        display: block;
+        margin-top: 3px;
+        color: #8C8C8C;
+        font-size: 12px;
+    }
+
+.airline-list-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #D7E0E3;
+    background: #F3F6F8;
+    object-fit: contain;
+    flex: 0 0 40px;
+}
+
+.airline-logo-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #004E5C;
+    font-weight: 700;
+}
+
+.airline-code {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #D7E0E3;
+    background: #F3F7F8;
+    color: #004E5C;
+    font-weight: 700;
+    letter-spacing: .03em;
+}
+
+.airline-country-text {
+    color: #111827;
+    font-weight: 400;
+}
+
+.airline-form-page .airline-form-card,
+.airline-form-page .master-page-head {
+    width: min(100%, 900px);
+}
+
+.airline-form-card {
+    max-width: 900px;
+    padding: 30px 34px;
+}
+
+.airline-upload-zone {
+    position: relative;
+    min-height: 138px;
+    border: 1.5px dashed #B8C7D0;
+    border-radius: 12px;
+    background: #F7FAFC;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    cursor: pointer;
+    transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+
+    .airline-upload-zone:hover,
+    .airline-upload-zone.is-dragging,
+    .airline-upload-zone.is-uploading {
+        border-color: #004E5C;
+        background: #F1F8F9;
+        box-shadow: 0 0 0 .2rem rgba(0, 78, 92, .08);
+    }
+
+    .airline-upload-zone.is-uploading {
+        cursor: wait;
+        opacity: .85;
+    }
+
+    .airline-upload-zone input[type="file"] {
+        display: none;
+    }
+
+.airline-upload-content {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.airline-upload-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: #BDEEFF;
+    color: #004E5C;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .airline-upload-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+.airline-upload-content strong {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.airline-upload-content small {
+    color: #6B7280;
+    font-size: 12px;
+}
+
+.airline-logo-edit-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 3fr) minmax(0, 7fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.airline-current-logo-box {
+    min-height: 116px;
+    border: 1px solid #D7E0E3;
+    border-radius: 10px;
+    background: #F3F6F8;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+}
+
+    .airline-current-logo-box img {
+        max-width: 100%;
+        max-height: 86px;
+        object-fit: contain;
+    }
+
+    .airline-current-logo-box span {
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        background: #EAF1F2;
+        color: #004E5C;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+.airline-detail-page {
+    gap: 28px;
+}
+
+.airline-detail-topline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+}
+
+.airline-detail-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 14px;
+}
+
+    .airline-detail-title > div {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .airline-detail-title h1,
+    .airline-detail-title p {
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+.airline-back-link {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 8px;
+    flex: 0 0 28px;
+}
+
+    .airline-back-link:hover {
+        background: #E6ECEF;
+        color: #004E5C;
+    }
+
+    .airline-back-link svg {
+        width: 22px;
+        height: 22px;
+    }
+
+.airline-detail-title h1 {
+    margin: 0;
+    color: #0B1220;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+}
+
+.airline-detail-title p {
+    margin: 8px 0 0;
+    color: #6B7280;
+    font-size: 14px;
+}
+
+.airline-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.airline-profile-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.airline-profile-card {
+    min-height: 270px;
+    padding: 24px;
+    border: 1px solid #E3E7EB;
+    border-radius: 12px;
+    background: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(17, 24, 39, .04);
+    display: grid;
+    grid-template-columns: minmax(160px, 25%) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+.airline-logo-panel {
+    aspect-ratio: 1 / 1;
+    min-height: 160px;
+    border: 1px solid #D7E0E3;
+    border-radius: 10px;
+    background: #F3F6F8;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+    .airline-logo-panel img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .airline-logo-panel span {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+        background: #EAF1F2;
+        color: #004E5C;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+    }
+
+.airline-profile-info h2 {
+    margin: 0 0 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #E3E7EB;
+    color: #20242A;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.airline-profile-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 34px;
+}
+
+.airline-info-item span:first-child {
+    display: block;
+    margin-bottom: 6px;
+    color: #7A828C;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 600;
+}
+
+.airline-info-item strong {
+    color: #20242A;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.airline-code-item strong {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid #D7E0E3;
+    background: #F3F7F8;
+    color: #004E5C;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: .03em;
+}
+
+.airline-detail-side {
+    display: grid;
+    gap: 18px;
+    align-content: start;
+}
+
+.airline-stats-title {
+    margin: 0 0 2px;
+    color: #4B5563;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.airline-stat-card {
+    position: relative;
+    min-height: 96px;
+    padding: 18px 18px 18px 22px;
+    border: 1px solid #E8ECEF;
+    border-radius: 12px;
+    background: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(17, 24, 39, .04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    overflow: hidden;
+}
+
+    .airline-stat-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 12px 0 0 12px;
+    }
+
+.airline-stat-plane::before {
+    background: #9A6A00;
+}
+
+.airline-stat-route::before {
+    background: #004E5C;
+}
+
+.airline-stat-card span:not(.airline-stat-icon) {
+    display: block;
+    color: #5E6670;
+    font-size: 13px;
+    font-weight: 400;
+    margin-bottom: 4px;
+}
+
+.airline-stat-card strong {
+    color: #20242A;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.airline-stat-card small {
+    margin-left: 5px;
+    color: #6B7280;
+    font-size: 12px;
+}
+
+.airline-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+}
+
+.airline-stat-plane .airline-stat-icon {
+    background: #F3EFE7;
+    color: #9A6A00;
+}
+
+.airline-stat-route .airline-stat-icon {
+    background: #EAF3F4;
+    color: #004E5C;
+}
+
+.airline-stat-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+@media (max-width: 992px) {
+    .airline-profile-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .airline-logo-edit-grid,
+    .airline-profile-card,
+    .airline-profile-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .airline-form-card,
+    .airline-profile-card {
+        max-width: none;
+        padding: 22px;
+    }
+
+    .airline-detail-topline {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .airline-detail-actions {
+        justify-content: flex-start;
+        flex-direction: row;
+    }
+
+        .airline-detail-actions .master-outline-btn,
+        .airline-detail-actions .master-danger-soft-btn {
+            width: auto;
+        }
+}
+/* ================================
+   Airline index table alignment
+================================ */
+
+.airline-table th:last-child,
+.airline-table td:last-child {
+    width: 150px;
+    min-width: 150px;
+    text-align: center;
+}
+
+.airline-table th:last-child {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.airline-table td:last-child {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+    .airline-table td:last-child .master-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        width: 150px;
+        margin: 0 auto;
+    }
+

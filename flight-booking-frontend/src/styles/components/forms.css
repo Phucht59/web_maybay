@@ -1,0 +1,19 @@
+/* =========================
+   Component: Forms
+   Các utility form dùng chung. Class đặc thù vẫn nằm trong page-specific CSS.
+   ========================= */
+
+.form-control-app {
+    width: 100%;
+    border: 1px solid #C9D2DA;
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: var(--color-text);
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+    .form-control-app:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 .2rem rgba(0, 78, 92, .10);
+        outline: 0;
+    }

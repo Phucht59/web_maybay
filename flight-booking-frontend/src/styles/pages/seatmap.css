@@ -1,0 +1,247 @@
+/* =========================
+   Page-specific: Sơ đồ ghế
+   ========================= */
+
+.seatmap-page .master-page-head {
+    align-items: flex-end;
+}
+
+.seatmap-head-actions,
+.seatmap-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+    .seatmap-actions .master-outline-btn,
+    .seatmap-actions .master-primary-btn {
+        min-height: 36px;
+        padding: 0 12px;
+    }
+
+.seatmap-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.seatmap-status-ok {
+    background: #E8F5E9;
+    color: #1B5E20;
+}
+
+.seatmap-status-warning {
+    background: #FFF7E6;
+    color: #9A6A00;
+}
+
+.seatmap-generate-card {
+    max-width: 1100px;
+}
+
+.seatmap-note {
+    margin: 0 0 18px;
+    color: #4B5563;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.seatmap-inner-table {
+    box-shadow: none;
+}
+
+.seatmap-number-input {
+    max-width: 130px;
+}
+
+.seatmap-column-input {
+    min-width: 190px;
+}
+
+.seatmap-edit-card {
+    max-width: 560px;
+}
+
+.seatmap-check-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+    .seatmap-check-row input {
+        width: 18px;
+        height: 18px;
+        accent-color: #004E5C;
+    }
+
+.seatmap-danger-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.seatmap-section {
+    background: #FFFFFF;
+    border: 1px solid #E3E7EB;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(17, 24, 39, .04);
+    padding: 22px;
+}
+
+    .seatmap-section h2 {
+        margin: 0 0 18px;
+        color: #0B1220;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+        .seatmap-section h2 span {
+            color: #6B7280;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+.seatmap-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.seatmap-seat-card {
+    width: 104px;
+    border: 1px solid #D7E0E3;
+    border-radius: 12px;
+    background: #FFFFFF;
+    padding: 12px;
+    text-align: center;
+    display: grid;
+    gap: 8px;
+}
+
+    .seatmap-seat-card.is-active {
+        border-color: #B7D8DE;
+        background: #F2FAFB;
+    }
+
+    .seatmap-seat-card.is-inactive {
+        border-color: #D1D5DB;
+        background: #F9FAFB;
+    }
+
+    .seatmap-seat-card strong {
+        color: #004E5C;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .seatmap-seat-card span {
+        color: #6B7280;
+        font-size: 12px;
+    }
+
+    .seatmap-seat-card .master-outline-btn,
+    .seatmap-seat-card .master-danger-soft-btn {
+        min-height: 30px;
+        width: 100%;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+
+@media (max-width: 768px) {
+    .seatmap-page .master-page-head,
+    .seatmap-head-actions,
+    .seatmap-danger-action,
+    .seatmap-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+        .seatmap-actions .master-outline-btn,
+        .seatmap-actions .master-primary-btn {
+            width: 100%;
+        }
+}
+
+/* =========================
+   Generate seat map layout
+   Mở rộng form và bỏ thanh cuộn ngang ở màn desktop.
+   ========================= */
+.master-form-page.seatmap-page .master-page-head,
+.master-form-page.seatmap-page .seatmap-generate-card {
+    width: min(100%, 1180px);
+    max-width: 1180px;
+}
+
+.seatmap-generate-card {
+    padding: 28px 32px;
+}
+
+.seatmap-generate-card .seatmap-inner-table {
+    overflow: hidden;
+}
+
+.seatmap-generate-card .master-table-wrap {
+    overflow-x: visible;
+}
+
+.seatmap-generate-card .master-table {
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.seatmap-generate-card .master-table th,
+.seatmap-generate-card .master-table td {
+    padding: 14px 16px;
+    white-space: nowrap;
+}
+
+.seatmap-generate-card .master-table :is(th, td):nth-child(1) {
+    width: 26%;
+}
+
+.seatmap-generate-card .master-table :is(th, td):nth-child(2) {
+    width: 18%;
+}
+
+.seatmap-generate-card .master-table :is(th, td):nth-child(3) {
+    width: 18%;
+}
+
+.seatmap-generate-card .master-table :is(th, td):nth-child(4) {
+    width: 24%;
+}
+
+.seatmap-generate-card .master-table :is(th, td):nth-child(5) {
+    width: 14%;
+    text-align: right;
+}
+
+.seatmap-generate-card .seatmap-number-input {
+    width: 130px;
+    max-width: 100%;
+}
+
+.seatmap-generate-card .seatmap-column-input {
+    width: 190px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 1100px) {
+    .seatmap-generate-card .master-table-wrap {
+        overflow-x: auto;
+    }
+
+    .seatmap-generate-card .master-table {
+        min-width: 820px;
+    }
+}

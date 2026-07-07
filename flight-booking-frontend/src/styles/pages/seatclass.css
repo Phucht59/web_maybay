@@ -1,0 +1,454 @@
+/* =========================
+   Page: Seat Class
+   CSS riêng cho module Hạng ghế.
+   Import sau master-data.css.
+   ========================= */
+
+.master-view {
+    color: #004E5C;
+}
+
+/* =========================
+   Seat Class refinement
+   Danh sách + trang chi tiết hạng ghế
+   ========================= */
+
+.seatclass-price-head,
+.seatclass-price-cell {
+    text-align: center !important;
+}
+
+.seatclass-price-cell {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.seatclass-description-cell {
+    color: #111827;
+    max-width: 680px;
+    white-space: pre-line;
+    line-height: 1.55;
+    vertical-align: middle;
+}
+
+.seatclass-detail-page {
+    gap: 28px;
+}
+
+.seatclass-detail-header {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+}
+
+.seatclass-back-link {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #374151;
+    text-decoration: none;
+    border-radius: 8px;
+}
+
+    .seatclass-back-link:hover {
+        background: #E6ECEF;
+        color: #004E5C;
+    }
+
+    .seatclass-back-link svg {
+        width: 22px;
+        height: 22px;
+    }
+
+
+.seatclass-detail-breadcrumb {
+    margin-bottom: 10px;
+}
+
+.seatclass-detail-title h1 {
+    margin: 0;
+    color: #111827;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.seatclass-detail-title p {
+    margin: 5px 0 0;
+    color: #6B7280;
+    font-size: 14px;
+}
+
+.seatclass-detail-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+    .seatclass-detail-actions .master-outline-btn {
+        min-height: 42px;
+        padding: 0 18px;
+        border-radius: 8px;
+        background: #FFFFFF;
+        color: #111827;
+        border: 1px solid #C9D2DA;
+        font-weight: 600;
+    }
+
+        .seatclass-detail-actions .master-outline-btn:hover {
+            border-color: #004E5C;
+            color: #004E5C;
+        }
+
+.seatclass-delete-btn {
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 8px;
+    background: #FFE1E1;
+    color: #B91C1C;
+    border: 1px solid #FFD6D6;
+    font-weight: 600;
+}
+
+    .seatclass-delete-btn:hover {
+        background: #FFD2D2;
+        border-color: #FFC2C2;
+        color: #991B1B;
+    }
+
+.seatclass-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(300px, 3.2fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.seatclass-info-card,
+.seatclass-stats-panel {
+    background: #FFFFFF;
+    border: 1px solid #E3E7EB;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(17, 24, 39, .04);
+    padding: 24px;
+}
+
+.seatclass-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 26px;
+    border-bottom: 1px solid #C9D2DA;
+}
+
+    .seatclass-section-title h2 {
+        margin: 0;
+        color: #4B5563;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: .04em;
+    }
+
+.seatclass-small-icon {
+    color: #004E5C;
+    display: inline-flex;
+}
+
+    .seatclass-small-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+.seatclass-info-row {
+    margin-bottom: 26px;
+}
+
+    .seatclass-info-row span,
+    .seatclass-description-detail > span {
+        display: block;
+        margin-bottom: 7px;
+        color: #4B5563;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .seatclass-info-row strong {
+        color: #111827;
+        font-size: 18px;
+        font-weight: 500;
+    }
+
+.seatclass-price-box {
+    min-height: 132px;
+    border: 1px solid #C9D2DA;
+    border-radius: 10px;
+    background: #F3F6F8;
+    padding: 28px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+    .seatclass-price-box span {
+        display: block;
+        color: #4B5563;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .seatclass-price-box strong {
+        color: #9A6A00;
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .seatclass-price-box small {
+        margin-left: 8px;
+        color: #6B7280;
+        font-size: 14px;
+    }
+
+.seatclass-stat-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: #EAE3D6;
+    color: #9A6A00;
+    flex: 0 0 64px;
+}
+
+    .seatclass-stat-icon svg {
+        width: 30px;
+        height: 30px;
+        display: block;
+    }
+
+.seatclass-description-detail p {
+    margin: 0;
+    padding-left: 20px;
+    border-left: 4px solid #004E5C;
+    color: #111827;
+    font-size: 16px;
+    line-height: 1.7;
+    white-space: pre-line;
+}
+
+.seatclass-stats-panel {
+    min-height: 420px;
+}
+
+.seatclass-stat-card {
+    position: relative;
+    min-height: 126px;
+    border: 1px solid #E3E7EB;
+    border-radius: 12px;
+    background: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(17, 24, 39, .04);
+    padding: 22px 76px 22px 24px;
+    overflow: hidden;
+}
+
+    .seatclass-stat-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: #9A6A00;
+    }
+
+.seatclass-stat-usage::before {
+    background: #004E5C;
+}
+
+.seatclass-stat-card + .seatclass-stat-card {
+    margin-top: 18px;
+}
+
+.seatclass-stat-card span:not(.seatclass-stat-icon) {
+    display: block;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.seatclass-stat-card strong {
+    color: #111827;
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.seatclass-stat-card .seatclass-stat-icon {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: #F3EFE7;
+    color: #9A6A00;
+}
+
+    .seatclass-stat-card .seatclass-stat-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+
+.seatclass-stat-usage .seatclass-stat-icon {
+    background: #EAF3F4;
+    color: #004E5C;
+}
+
+.seatclass-progress {
+    height: 7px;
+    margin-top: 22px;
+    border-radius: 999px;
+    background: #E5E7EB;
+    overflow: hidden;
+}
+
+    .seatclass-progress span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #9A6A00;
+    }
+
+.seatclass-stat-card small {
+    display: block;
+    margin-top: 8px;
+    color: #4B5563;
+    font-size: 13px;
+    text-align: right;
+    font-weight: 600;
+}
+
+@media (max-width: 992px) {
+    .seatclass-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seatclass-detail-header {
+        grid-template-columns: 28px minmax(0, 1fr);
+    }
+
+    .seatclass-detail-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .seatclass-detail-header {
+        grid-template-columns: 1fr;
+    }
+
+    .seatclass-detail-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+        .seatclass-detail-actions .master-outline-btn,
+        .seatclass-detail-actions .master-danger-btn {
+            width: 100%;
+        }
+
+    .seatclass-price-box {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+
+/* Seat class v3 minor fixes */
+.seatclass-description-cell {
+    padding-top: 16px;
+    padding-bottom: 16px;
+    vertical-align: middle;
+}
+
+.seatclass-detail-actions .master-outline-btn,
+.seatclass-detail-actions .master-danger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+    .seatclass-detail-actions .master-outline-btn svg,
+    .seatclass-detail-actions .master-danger-btn svg {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+    }
+
+.seatclass-price-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+/* Form riêng của Hạng ghế: mô tả rộng bên phải */
+.seatclass-form-card {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0;
+    padding: 28px 32px;
+    justify-self: start;
+}
+
+.seatclass-form-grid {
+    display: grid;
+    grid-template-columns: 386px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.seatclass-form-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.seatclass-form-right {
+    min-width: 0;
+}
+
+    .seatclass-form-right .master-form-group,
+    .seatclass-form-right .seatclass-description {
+        height: 100%;
+    }
+
+.seatclass-description {
+    width: 100%;
+    min-height: 220px;
+    resize: none;
+    line-height: 1.55;
+}
+
+@media (max-width: 768px) {
+    .seatclass-form-card {
+        max-width: none;
+        margin: 0;
+        padding: 22px;
+    }
+
+    .seatclass-form-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .seatclass-description {
+        min-height: 180px;
+    }
+}
