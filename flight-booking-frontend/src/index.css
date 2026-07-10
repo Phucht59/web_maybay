@@ -21,7 +21,6 @@
 @import "./styles/pages/route.css";
 @import "./styles/pages/seatmap.css";
 @import "./styles/pages/flight-management.css";
-
 * {
   box-sizing: border-box;
 }

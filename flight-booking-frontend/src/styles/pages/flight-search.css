@@ -1,0 +1,295 @@
+.fs-page {
+  --ocean-teal: #006885;
+  --lotus-gold: #ce9938;
+  --cloud-white: #fff;
+  --charcoal-text: #292929;
+  --surface-bright: #fcf9f8;
+  --surface-container: #f0eded;
+  --surface-container-low: #f6f3f2;
+  --surface-container-highest: #e4e2e1;
+  --outline-variant: #bfc8cd;
+  --on-surface-variant: #3f484d;
+  --on-surface: #1b1c1c;
+  font-family: "Open Sans", sans-serif;
+  background: var(--surface-bright);
+  min-height: 100vh;
+  color: var(--on-surface);
+}
+
+.fs-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--cloud-white);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fs-back {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ocean-teal);
+  padding: 4px;
+}
+
+.fs-route-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-route-codes {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--charcoal-text);
+}
+
+.fs-route-date {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.fs-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 80px 24px 40px;
+}
+
+.fs-header h1 {
+  font-family: "Noto Serif", serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ocean-teal);
+  margin-bottom: 4px;
+}
+
+.fs-subtitle {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+}
+
+.fs-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+}
+
+.fs-sort {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--on-surface-variant);
+}
+
+.fs-sort select {
+  padding: 6px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: var(--cloud-white);
+  font-size: 14px;
+  color: var(--charcoal-text);
+}
+
+.fs-loading,
+.fs-error,
+.fs-empty {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: var(--on-surface-variant);
+}
+
+.fs-error {
+  color: #ba1a1a;
+}
+
+.fs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fs-card {
+  background: var(--cloud-white);
+  border: 1px solid rgba(191, 200, 205, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 104, 133, 0.06);
+}
+
+.fs-card:hover {
+  box-shadow: 0 4px 24px rgba(0, 104, 133, 0.12);
+  border-color: var(--lotus-gold);
+}
+
+.fs-card-main {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 24px;
+}
+
+.fs-time-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 80px;
+}
+
+.fs-right {
+  text-align: right;
+}
+
+.fs-time {
+  font-family: "Noto Serif", serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--charcoal-text);
+}
+
+.fs-airport-code {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  font-weight: 600;
+}
+
+.fs-duration {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.fs-dur-line {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+}
+
+.fs-connector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 120px;
+}
+
+.fs-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ocean-teal);
+  flex-shrink: 0;
+}
+
+.fs-line {
+  flex: 1;
+  height: 2px;
+  background: var(--outline-variant);
+}
+
+.fs-direct {
+  font-size: 11px;
+  color: var(--ocean-teal);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.fs-airline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.fs-airline-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--charcoal-text);
+}
+
+.fs-flight-no {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.fs-aircraft {
+  font-size: 11px;
+  color: var(--outline);
+}
+
+.fs-fare-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(191, 200, 205, 0.2);
+}
+
+.fs-fare-item {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-right: 1px solid rgba(191, 200, 205, 0.2);
+  transition: background 0.2s;
+}
+
+.fs-fare-item:last-child {
+  border-right: none;
+}
+
+.fs-fare-item:hover {
+  background: var(--ocean-teal);
+}
+
+.fs-fare-item:hover .fs-fare-label,
+.fs-fare-item:hover .fs-fare-price {
+  color: var(--cloud-white);
+}
+
+.fs-fare-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  letter-spacing: 0.03em;
+}
+
+.fs-fare-price {
+  font-family: "Noto Serif", serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ocean-teal);
+}
+
+.fs-choose {
+  margin-top: 8px;
+  padding: 6px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--lotus-gold);
+  color: var(--charcoal-text);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.fs-choose:hover {
+  transform: scale(1.05);
+}
+
+.fs-fare-item:hover .fs-choose {
+  background: var(--cloud-white);
+  color: var(--charcoal-text);
+}

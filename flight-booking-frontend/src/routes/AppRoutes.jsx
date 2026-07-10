@@ -1,4 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import FlightSelectionPage from "../pages/flight-selection/FlightSelectionPage";
+import HomePage from "../pages/home/HomePage";
+import FlightSearchPage from "../pages/search/FlightSearchPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import DashboardPage from "../pages/admin/dashboard/DashboardPage";
@@ -30,7 +33,9 @@ import ProtectedRoute from "./ProtectedRoute";
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<HomePage />} />
+      <Route path="/search" element={<FlightSearchPage />} />
+      <Route path="/flight-selection" element={<FlightSelectionPage />} />
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -70,7 +75,7 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
