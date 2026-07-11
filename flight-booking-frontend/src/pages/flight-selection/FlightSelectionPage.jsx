@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authService } from "../../services/authService";
 import { publicFlightService } from "../../services/publicFlightService";
@@ -237,6 +237,10 @@ function FlightListSection({
                   >
                     {soldOut ? "Sold Out" : flight.trangThai || "Scheduled"}
                   </span>
+
+                  <div className="flight-selection-flight-meta">
+                    <span>Còn {flight.gheConTrong ?? 0} ghế</span>
+                  </div>
                 </div>
 
                 <div className="flight-selection-route-row">
@@ -262,11 +266,6 @@ function FlightListSection({
                   </div>
                 </div>
 
-                <div className="flight-selection-flight-meta">
-                  <span>{flight.tenSanBayDi} · {formatTime(flight.gioKhoiHanh)}</span>
-                  <span>{flight.tenSanBayDen} · {formatTime(flight.gioHaCanh)}</span>
-                  <span>Còn {flight.gheConTrong ?? 0} ghế</span>
-                </div>
               </div>
 
               <div

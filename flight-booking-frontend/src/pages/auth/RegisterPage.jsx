@@ -199,7 +199,11 @@ function RegisterPage() {
         })
       );
 
-      navigate("/admin/dashboard", { replace: true });
+      if (data.vaiTro === "Admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (err) {
       console.error("REGISTER ERROR:", err);
 
