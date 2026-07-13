@@ -566,7 +566,10 @@ export default function FlightSelectionPage() {
       return;
     }
 
-    navigate(`/booking/${flight.maChuyenBay}`, {
+    navigate(`/booking/${flight.maChuyenBay}?${new URLSearchParams({
+      fare: seatClass || "Economy",
+      passengers: "1",
+    }).toString()}`, {
       state: {
         flight,
         selectedSeatClass: seatClass,
@@ -578,55 +581,10 @@ export default function FlightSelectionPage() {
 
   return (
     <div className="flight-selection-page">
-      <aside className="flight-selection-sidebar">
-        <div className="flight-selection-brand-mark">
-          <MaterialIcon name="eco" fill />
-        </div>
-        <nav className="flight-selection-sidebar-nav" aria-label="Main">
-          {SIDEBAR_ITEMS.map((item) => (
-            <a key={item.label} className={`flight-selection-sidebar-link${item.active ? " is-active" : ""}`} href="#">
-              <MaterialIcon name={item.icon} fill={item.active} />
-              <span>{item.label}</span>
-            </a>
-          ))}
-        </nav>
-        <div className="flight-selection-sidebar-footer">
-          <button type="button" className="flight-selection-icon-button" aria-label="Help">
-            <MaterialIcon name="help" />
-          </button>
-          <button type="button" className="flight-selection-icon-button" aria-label="Support">
-            <MaterialIcon name="support_agent" />
-          </button>
-        </div>
-      </aside>
+
 
       <div className="flight-selection-shell">
-        <header className="flight-selection-topbar">
-          <div className="flight-selection-logo">Vietnam Airlines</div>
-          <div className="flight-selection-topbar-actions">
-            <a href="#">Language</a>
-            {currentUser ? (
-              <span>{currentUser.hoTen || currentUser.tenDangNhap || currentUser.email}</span>
-            ) : (
-              <a
-                href={`/login?redirect=${encodeURIComponent(
-                  `/flight-selection?${new URLSearchParams({
-                    from: fromCode,
-                    to: toCode,
-                    date: selectedDate,
-                    tripType,
-                    ...(tripType === "roundtrip" ? { returnDate } : {}),
-                  }).toString()}`
-                )}`}
-              >
-                Login
-              </a>
-            )}
-            <button type="button" className="flight-selection-icon-button" aria-label="Search">
-              <MaterialIcon name="search" />
-            </button>
-          </div>
-        </header>
+
 
         <section className="flight-selection-hero">
           <div className="flight-selection-hero-copy">

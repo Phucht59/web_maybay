@@ -51,6 +51,13 @@ function HomePage() {
   const [showFromSug, setShowFromSug] = useState(false);
   const [showToSug, setShowToSug] = useState(false);
 
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login", { replace: true });
+  };
+
   // All airports loaded once
   const [allAirports, setAllAirports] = useState([]);
   const [airportsLoaded, setAirportsLoaded] = useState(false);
@@ -183,69 +190,6 @@ function HomePage() {
 
   return (
     <div className="home-page">
-      {/* Top Navigation */}
-      <header
-        ref={topBarRef}
-        className={`top-bar ${scrolled ? "top-bar-solid" : ""}`}
-      >
-        <div className="top-bar-left">
-          <div className="search-box">
-            <MaterialIcon name="search" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm"
-              className={`search-input ${scrolled ? "search-input-dark" : ""}`}
-            />
-          </div>
-        </div>
-        <div className="top-bar-right">
-          <div className="lang-switcher">
-            <img
-              alt="Vietnam Flag"
-              className="flag-icon"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvu0bcR_gfoq9hEwgZXzAI6ksGDmBiLkVLFk5EnZvn828qu8WEayCkmX1r3Qox9z8pnQJJBhTuFErpCHczcCEczWzPCAYfFYSvE3DSGOqwCCSsWhYN2sO0taw_WFC1Miej0WNd0myv-51Mp2vpTLEMWKqvUG5b5AAV6sslIlvWIDYOo1q73N6cp0rk3ourFKef7J8ciIZ2V7XX5ZsDTwZK1tU8ht9mQKdm4lXLeF00iRZqQJm2CbsmDkTgcu0ZfCowf6aEdUsLxf8z"
-            />
-            <span>VI</span>
-          </div>
-          {isLoggedIn ? (
-            <Link to={user?.vaiTro === "Admin" ? "/admin/dashboard" : "/"} className="btn-login">
-              {user?.hoTen || "Tài khoản"}
-            </Link>
-          ) : (
-            <Link to="/login" className="btn-login">
-              Login
-            </Link>
-          )}
-        </div>
-      </header>
-
-      {/* Sidebar */}
-      <aside className="flight-selection-sidebar">
-        <div className="flight-selection-brand-mark">
-          <MaterialIcon name="eco" fill />
-        </div>
-        <nav className="flight-selection-sidebar-nav" aria-label="Main">
-          {NAV_ITEMS.map((item, i) => (
-            <a
-              key={i}
-              href="#"
-              className={`flight-selection-sidebar-link${item.active ? " is-active" : ""}`}
-            >
-              <MaterialIcon name={item.icon} fill={!!item.active} />
-              <span>{item.label}</span>
-            </a>
-          ))}
-        </nav>
-        <div className="flight-selection-sidebar-footer">
-          <button type="button" className="flight-selection-icon-button" aria-label="Help">
-            <MaterialIcon name="help" />
-          </button>
-          <button type="button" className="flight-selection-icon-button" aria-label="Support">
-            <MaterialIcon name="support_agent" />
-          </button>
-        </div>
-      </aside>
-
       <main className="home-main">
         {/* Hero */}
         <section className="hero">

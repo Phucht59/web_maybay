@@ -1,0 +1,492 @@
+.aircraft-map-stage {
+  height: 760px;
+  background:
+    radial-gradient(ellipse at 50% 13%, rgba(255,255,255,.98) 0, rgba(244,252,252,.9) 44%, rgba(228,244,245,.82) 100%);
+}
+
+.aircraft-map-canvas {
+  position: absolute;
+  inset: 0 auto auto 0;
+  transform-origin: 0 0;
+}
+.aircraft-map-canvas.animating { transition: transform .4s cubic-bezier(.2,.72,.23,1); }
+.aircraft-map-canvas.dragging { transition: none; }
+
+.seat-map-scrollbar {
+  position: absolute;
+  z-index: 8;
+  top: 28px;
+  right: 12px;
+  bottom: 28px;
+  width: 8px;
+  border: 1px solid rgba(46, 122, 131, .13);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .58);
+  box-shadow: 0 2px 8px rgba(11, 83, 92, .08), inset 0 1px rgba(255,255,255,.72);
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.seat-map-scrollbar-thumb {
+  position: absolute;
+  right: 1px;
+  left: 1px;
+  min-height: 26px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #42a7a7, #087a85);
+  box-shadow: 0 1px 4px rgba(5, 100, 112, .28);
+  pointer-events: none;
+}
+
+.seat-map-scrollbar:hover .seat-map-scrollbar-thumb {
+  background: linear-gradient(180deg, #31b1ad, #056e7a);
+}
+
+.aircraft-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.cabin-overlay,
+.usable-seat-area {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.aircraft-utility {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-sizing: border-box;
+  color: #6a9095;
+  pointer-events: none;
+}
+.aircraft-utility .material-symbols-outlined {
+  padding: 2px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.52);
+  font-size: 16px;
+}
+.top-utility-area { inset: 0 0 auto; }
+.bottom-utility-area { border-top: 1px solid rgba(78,145,153,.14); }
+
+.aircraft-cabin {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  display: grid;
+  grid-template-rows: var(--section-header-height) var(--column-label-height) minmax(0,1fr);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.aircraft-cabin[data-view-mode="overview"] { cursor: zoom-in; }
+.aircraft-cabin[data-view-mode="focus"] { cursor: default; }
+
+.aircraft-cabin header {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #0b6c76;
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.aircraft-cabin header span {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(250,255,255,.82);
+  box-shadow: 0 1px 3px rgba(17,91,101,.07);
+}
+.aircraft-cabin header i {
+  width: 15px;
+  border-top: 1px solid rgba(45,122,130,.28);
+}
+.aircraft-cabin-first header { color: #667f84; }
+.aircraft-cabin-business header { color: #0a6c75; }
+.aircraft-cabin-economy header { color: #086873; }
+
+.aircraft-column-labels,
+.aircraft-seat-row {
+  display: grid;
+  align-items: center;
+  width: var(--content-width);
+  max-width: 100%;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.aircraft-column-labels {
+  z-index: 2;
+  color: #4d777c;
+  font-size: clamp(5px, calc(var(--seat-width) * .45), 9px);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px rgba(255,255,255,.9);
+  pointer-events: none;
+}
+.aircraft-column-group,
+.aircraft-seat-group {
+  display: grid;
+  align-items: center;
+  justify-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 0;
+}
+
+.aircraft-column-slot,
+.aircraft-seat-slot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.aircraft-column-letter {
+  display: block;
+  width: 100%;
+  color: #4d787d;
+  font-size: clamp(7px, calc(var(--seat-width) * .5), 11px);
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.aircraft-seat-slot > .booking-seat,
+.aircraft-seat-slot > .seat-placeholder {
+  justify-self: center;
+}
+
+.aircraft-column-aisle {
+  width: 100%;
+  height: 1px;
+}
+
+
+.aircraft-cabin-rows {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.aircraft-seat-row {
+  height: var(--row-step);
+  padding-block: var(--row-offset);
+}
+.aircraft-seat-row.block-start {
+  position: relative;
+}
+.aircraft-seat-row.block-start::before {
+  position: absolute;
+  top: calc(var(--block-gap) * -.55);
+  right: 8%;
+  left: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(57,132,141,.15), transparent);
+  content: "";
+}
+
+.aircraft-row-marker {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  color: #57777c;
+  font-size: clamp(5px, calc(var(--seat-height) * .58), 9px);
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  opacity: .9;
+  pointer-events: none;
+}
+.aircraft-row-marker[data-visible="false"] { opacity: 0; }
+
+.aircraft-cabin .aircraft-seat-button,
+.aircraft-cabin .seat-placeholder {
+  width: var(--seat-width);
+  height: var(--seat-height);
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.aircraft-cabin .seat-placeholder {
+  display: block;
+  visibility: hidden;
+}
+
+/*
+ * Seat styles are deliberately namespaced.
+ * This prevents the legacy .booking-seat and .seat-shape rules in
+ * booking-seat.css from redrawing the icon as the old nested square.
+ */
+.aircraft-cabin .booking-seat.aircraft-seat-button {
+  --seat-bg: #f3faf7;
+  --seat-border: #add7c6;
+  --seat-icon: #5a9480;
+  --seat-shadow: rgba(53, 105, 90, .10);
+
+  appearance: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--seat-width);
+  height: var(--seat-height);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: calc(var(--seat-width) * .13);
+  overflow: visible;
+  border: 1px solid var(--seat-border);
+  border-radius: clamp(5px, calc(var(--seat-width) * .27), 8px);
+  background: var(--seat-bg);
+  color: var(--seat-icon);
+  box-shadow: 0 1px 2px var(--seat-shadow);
+  transition: transform .14s ease, border-color .14s ease, background-color .14s ease, box-shadow .14s ease;
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button:not(:disabled):hover {
+  z-index: 5;
+  transform: translateY(-1px) scale(1.05);
+  border-color: #68b39b;
+  background: #e9f7f1;
+  box-shadow: 0 3px 8px rgba(45, 117, 96, .18);
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button:focus-visible {
+  z-index: 6;
+  outline: 2px solid #128f86;
+  outline-offset: 2px;
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button.selected {
+  --seat-bg: #159c92;
+  --seat-border: #0c8078;
+  --seat-icon: #ffffff;
+  --seat-shadow: rgba(12, 127, 119, .24);
+  box-shadow: 0 3px 8px var(--seat-shadow);
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button.paying {
+  --seat-bg: #fff5e3;
+  --seat-border: #efad46;
+  --seat-icon: #df8c17;
+  --seat-shadow: rgba(211, 132, 24, .18);
+  box-shadow: 0 2px 6px var(--seat-shadow);
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button.sold {
+  --seat-bg: #eef1f2;
+  --seat-border: #c9d2d5;
+  --seat-icon: #929fa4;
+  --seat-shadow: transparent;
+  box-shadow: none;
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button:disabled {
+  cursor: not-allowed;
+}
+
+.aircraft-cabin .aircraft-seat-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.aircraft-cabin .aircraft-seat-icon__back,
+.aircraft-cabin .aircraft-seat-icon__cushion {
+  fill: currentColor;
+  fill-opacity: .13;
+  stroke: currentColor;
+}
+
+.aircraft-cabin .aircraft-seat-icon__arm,
+.aircraft-cabin .aircraft-seat-icon__base {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* Business: executive recliner silhouette. */
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-business {
+  --seat-bg: #eef9f6;
+  --seat-border: #8fc7b7;
+  --seat-icon: #287f70;
+  padding: calc(var(--seat-width) * .08);
+  border-radius: clamp(6px, calc(var(--seat-width) * .31), 10px);
+  box-shadow: 0 2px 5px rgba(38, 104, 88, .13), inset 0 1px 0 rgba(255,255,255,.86);
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-business:not(:disabled):hover {
+  border-color: #4da68f;
+  background: #e2f5ef;
+  box-shadow: 0 4px 10px rgba(35, 111, 91, .2);
+}
+
+.aircraft-cabin .aircraft-seat-icon--business {
+  stroke-width: 1.35;
+}
+
+.aircraft-cabin .premium-seat__shell {
+  fill: currentColor;
+  fill-opacity: .07;
+  stroke: currentColor;
+}
+.aircraft-cabin .premium-seat__headrest,
+.aircraft-cabin .premium-seat__back,
+.aircraft-cabin .premium-seat__cushion {
+  fill: currentColor;
+  fill-opacity: .16;
+  stroke: currentColor;
+}
+.aircraft-cabin .premium-seat__wing,
+.aircraft-cabin .premium-seat__arm,
+.aircraft-cabin .premium-seat__footrest {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* First Class: private pod / suite silhouette with a restrained gold accent. */
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-first {
+  --seat-bg: #fffaf0;
+  --seat-border: #d8c18c;
+  --seat-icon: #6f664f;
+  --first-accent: #b79345;
+  padding: calc(var(--seat-width) * .055);
+  border-width: 1.2px;
+  border-radius: clamp(7px, calc(var(--seat-width) * .34), 11px);
+  box-shadow: 0 2px 6px rgba(116, 91, 39, .15), inset 0 1px 0 rgba(255,255,255,.92);
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-first:not(:disabled):hover {
+  border-color: #c4a45e;
+  background: #fff5dc;
+  box-shadow: 0 4px 11px rgba(124, 94, 33, .2);
+}
+
+.aircraft-cabin .aircraft-seat-icon--first {
+  stroke-width: 1.25;
+}
+.aircraft-cabin .first-seat__pod {
+  fill: currentColor;
+  fill-opacity: .055;
+  stroke: currentColor;
+}
+.aircraft-cabin .first-seat__headrest,
+.aircraft-cabin .first-seat__back,
+.aircraft-cabin .first-seat__cushion,
+.aircraft-cabin .first-seat__ottoman {
+  fill: currentColor;
+  fill-opacity: .14;
+  stroke: currentColor;
+}
+.aircraft-cabin .first-seat__console,
+.aircraft-cabin .first-seat__arm {
+  fill: none;
+  stroke: currentColor;
+}
+.aircraft-cabin .first-seat__accent {
+  fill: none;
+  stroke: var(--first-accent);
+  stroke-width: 1.7;
+}
+
+/* State colors stay dominant for every cabin class. */
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-business.selected,
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-first.selected {
+  --seat-bg: #159c92;
+  --seat-border: #0c8078;
+  --seat-icon: #ffffff;
+  --first-accent: rgba(255,255,255,.78);
+}
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-business.paying,
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-first.paying {
+  --seat-bg: #fff5e3;
+  --seat-border: #efad46;
+  --seat-icon: #df8c17;
+  --first-accent: #d88b18;
+}
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-business.sold,
+.aircraft-cabin .booking-seat.aircraft-seat-button.fare-first.sold {
+  --seat-bg: #eef1f2;
+  --seat-border: #c9d2d5;
+  --seat-icon: #929fa4;
+  --first-accent: #aab4b7;
+}
+
+.aircraft-cabin .booking-seat.aircraft-seat-button small {
+  display: none;
+}
+
+/*
+ * Overview dùng cùng visual và geometry với focus.
+ * Chỉ tắt tương tác vì ghế quá nhỏ khi đang xem toàn máy bay.
+ */
+.aircraft-map-canvas[data-view-mode="overview"] .booking-seat.aircraft-seat-button {
+    pointer-events: none;
+}
+
+.aircraft-map-canvas[data-view-mode="overview"] .aircraft-cabin {
+    cursor: zoom-in;
+}
+
+.aircraft-map-canvas[data-view-mode="overview"] .aircraft-row-marker {
+    opacity: 0.78;
+}
+
+.aircraft-map-canvas[data-view-mode="overview"] .aircraft-column-labels {
+  opacity: .82;
+}
+.aircraft-map-canvas[data-view-mode="overview"] .aircraft-cabin header { opacity: .92; }
+
+.aircraft-map-canvas[data-view-mode="focus"] .aircraft-cabin-rows {
+  background: linear-gradient(90deg, transparent, rgba(230,246,246,.16) 50%, transparent);
+}
+
+.aircraft-cabin-business::after,
+.aircraft-cabin-economy::after {
+  position: absolute;
+  z-index: 0;
+  right: 12px;
+  bottom: 0;
+  left: 12px;
+  border-bottom: 1px dashed rgba(73,140,148,.15);
+  content: "";
+}
+
+@media (max-width:1080px) {
+  .aircraft-map-stage { height: 700px; }
+}
+@media (max-width:720px) {
+  .aircraft-map-stage { height: 640px; }
+  .aircraft-utility .material-symbols-outlined { font-size: 15px; }
+  .aircraft-cabin header { font-size: 6px; }
+}

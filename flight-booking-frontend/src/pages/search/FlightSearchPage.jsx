@@ -65,7 +65,7 @@ export default function FlightSearchPage() {
       navigate(`/login?redirect=/search?from=${fromCode}&to=${toCode}&date=${date}`);
       return;
     }
-    navigate(`/booking/${flight.maChuyenBay}`, { state: { flight } });
+    navigate(`/booking/${flight.maChuyenBay}?passengers=1`, { state: { flight } });
   };
 
   const formatDate = (d) => {

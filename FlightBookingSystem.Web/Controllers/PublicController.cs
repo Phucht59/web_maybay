@@ -169,5 +169,12 @@ namespace FlightBookingSystem.Web.Controllers
 
             return Ok(new { flights = result, total = result.Count() });
         }
+        // POST /api/Public/seed-database
+        [HttpPost("seed-database")]
+        public async Task<IActionResult> SeedDatabase([FromServices] IServiceProvider services)
+        {
+            await DatabaseSeeder.SeedAsync(services);
+            return Ok(new { message = "Seeding completed successfully" });
+        }
     }
 }

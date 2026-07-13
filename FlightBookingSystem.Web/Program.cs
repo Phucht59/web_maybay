@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -112,7 +112,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
@@ -124,7 +124,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed tài khoản Admin
-await DbInitializer.SeedAdminAsync(app.Services);
+
+
+if (args.Contains("--seed"))
+{
+    await DatabaseSeeder.SeedAsync(app.Services);
+    Console.WriteLine("Data seeded successfully. Exiting.");
+    return;
+}
 
 app.Run();
