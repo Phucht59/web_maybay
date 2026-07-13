@@ -6,18 +6,6 @@ import aircraftTop from "../../assets/booking/aircraft-seatmap-v3.png";
 import "../../styles/pages/booking-seat.css";
 
 const HOLD_SECONDS = 10 * 60;
-const BAGGAGE_OPTIONS = [
-  { kg: 0, price: 0, label: "Không thêm hành lý" },
-  { kg: 20, price: 350000, label: "20kg" },
-  { kg: 25, price: 440000, label: "25kg" },
-  { kg: 30, price: 520000, label: "30kg" },
-  { kg: 40, price: 720000, label: "40kg" },
-];
-const PROTECTION_OPTIONS = [
-  { id: "none", name: "Không thêm", price: 0, description: "Không áp dụng bảo vệ bổ sung." },
-  { id: "protect", name: "Bảo vệ chuyến đi", price: 120000, description: "Hỗ trợ khi chuyến bay bị gián đoạn và bảo vệ chi phí phát sinh đủ điều kiện." },
-  { id: "flex", name: "Bảo vệ linh hoạt", price: 250000, description: "Bao gồm bảo vệ chuyến đi và quyền đổi lịch/hoàn vé theo điều kiện áp dụng." },
-];
 
 function Icon({ children }) { return <span className="material-symbols-outlined" aria-hidden="true">{children}</span>; }
 function money(value) { return `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))} VND`; }
@@ -129,6 +117,39 @@ export default function BookingSeatPage() {
   }, [loadSeatMap, passengerCount, paymentStarted, secondsLeft]);
 
   const seatById = useMemo(() => new Map((data?.seats || []).map((seat) => [seat.maGheChuyenBay, seat])), [data]);
+  const activeServices = useMemo(() => (data?.services || []).filter((service) => {
+    const type = String(service?.loaiDichVu || "").toLowerCase();
+    return Number.isInteger(service?.maDichVu) && service.maDichVu > 0
+      && String(service?.trangThai || "").toLowerCase() === "active"
+      && (type === "baggage" || type === "protection");
+  }), [data?.services]);
+  const baggageServices = useMemo(
+    () => activeServices.filter((service) => String(service.loaiDichVu).toLowerCase() === "baggage"),
+    [activeServices],
+  );
+  const protectionServices = useMemo(
+    () => activeServices.filter((service) => String(service.loaiDichVu).toLowerCase() === "protection"),
+    [activeServices],
+  );
+  const serviceById = useMemo(
+    () => new Map(activeServices.map((service) => [service.maDichVu, service])),
+    [activeServices],
+  );
+
+  useEffect(() => {
+    setServicesByPassenger((current) => {
+      let changed = false;
+      const normalized = current.map((selection) => {
+        const baggageServiceId = serviceById.has(selection.baggageServiceId) ? selection.baggageServiceId : null;
+        const protectionServiceId = serviceById.has(selection.protectionServiceId) ? selection.protectionServiceId : null;
+        if (baggageServiceId === selection.baggageServiceId && protectionServiceId === selection.protectionServiceId) return selection;
+        changed = true;
+        return { baggageServiceId, protectionServiceId };
+      });
+      return changed ? normalized : current;
+    });
+  }, [serviceById]);
+
   const cabins = useMemo(() => ["first", "business", "economy"].map((fare) => {
     const grouped = new Map();
     (data?.seats || []).filter((seat) => normalizeFare(seat.tenHangGhe) === fare).forEach((seat) => {
@@ -144,7 +165,11 @@ export default function BookingSeatPage() {
   const selectedIds = assignments.filter(Boolean);
   const selectedSeats = assignments.map((seatId) => seatById.get(seatId) || null);
   const seatTotal = selectedSeats.reduce((sum, seat) => sum + Number(seat?.giaGhe || 0), 0);
-  const serviceTotal = servicesByPassenger.reduce((sum, service) => sum + service.baggage.price + protection(service.protection).price, 0);
+  const serviceTotal = servicesByPassenger.reduce((sum, selection) => (
+    sum
+      + Number(serviceById.get(selection.baggageServiceId)?.gia || 0)
+      + Number(serviceById.get(selection.protectionServiceId)?.gia || 0)
+  ), 0);
   const total = seatTotal + serviceTotal;
 
   const setSeatStatus = (seatId, update) => {
@@ -293,15 +318,20 @@ export default function BookingSeatPage() {
         <div className="booking-passenger-count"><span>Số hành khách</span><div><button disabled={paymentStarted || passengerCount <= 1} onClick={() => changePassengerCount(passengerCount - 1)} aria-label="Giảm số hành khách"><Icon>remove</Icon></button><b>{passengerCount}</b><button disabled={paymentStarted || passengerCount >= 9} onClick={() => changePassengerCount(passengerCount + 1)} aria-label="Tăng số hành khách"><Icon>add</Icon></button></div></div>
         <div className="booking-passenger-list">{assignments.map((seatId, index) => {
           const seat = seatById.get(seatId);
-          const service = servicesByPassenger[index];
-          return <article className={`booking-passenger ${index === activePassenger && !paymentStarted ? "active" : ""}`} key={index} onClick={() => !paymentStarted && setActivePassenger(index)}><div className="booking-passenger-title"><span><Icon>person</Icon>Hành khách {index + 1}</span><b>{seat?.soGhe || "Chưa chọn"}</b></div><div className="booking-passenger-actions"><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "baggage", passenger: index }); }}><Icon>luggage</Icon><span>{service.baggage.kg ? `${service.baggage.kg}kg` : "Hành lý"}</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "protection", passenger: index }); }}><Icon>shield</Icon><span>{protection(service.protection).id === "none" ? "Bảo vệ" : protection(service.protection).name}</span></button></div></article>;
+          const selection = servicesByPassenger[index];
+          const baggageService = serviceById.get(selection.baggageServiceId);
+          const protectionService = serviceById.get(selection.protectionServiceId);
+          const baggageLabel = baggageService
+            ? (baggageService.khoiLuongKg != null ? `${baggageService.khoiLuongKg}kg` : baggageService.tenDichVu)
+            : "Hành lý";
+          return <article className={`booking-passenger ${index === activePassenger && !paymentStarted ? "active" : ""}`} key={index} onClick={() => !paymentStarted && setActivePassenger(index)}><div className="booking-passenger-title"><span><Icon>person</Icon>Hành khách {index + 1}</span><b>{seat?.soGhe || "Chưa chọn"}</b></div><div className="booking-passenger-actions"><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "baggage", passenger: index }); }}><Icon>luggage</Icon><span>{baggageLabel}</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "protection", passenger: index }); }}><Icon>shield</Icon><span>{protectionService?.tenDichVu || "Bảo vệ"}</span></button></div></article>;
         })}</div>
         <div className="booking-cost"><div><span>Ghế đã chọn</span><b>{money(seatTotal)}</b></div><div><span>Dịch vụ hành khách</span><b>{money(serviceTotal)}</b></div></div>
         <div className="booking-total"><span>Tổng tiền</span><strong>{money(total)}</strong></div>
         {paymentStarted ? <><button className="booking-cancel" onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay">Thanh toán ngay <Icon>credit_card</Icon></button></> : <button className="booking-pay" disabled={selectedIds.length !== passengerCount} onClick={startPayment}>Tiếp tục thanh toán <Icon>arrow_forward</Icon></button>}
       </aside>
     </section>
-    {modal && <ServiceModal modal={modal} service={servicesByPassenger[modal.passenger]} onClose={() => setModal(null)} onChoose={updateService} />}
+    {modal && <ServiceModal modal={modal} selection={servicesByPassenger[modal.passenger]} services={modal.type === "baggage" ? baggageServices : protectionServices} onClose={() => setModal(null)} onChoose={updateService} />}
   </main>;
 }
 
@@ -496,17 +526,25 @@ function Seat({ seat, selected, paymentStarted, onChoose }) {
   );
 }
 
-function ServiceModal({ modal, service, onClose, onChoose }) {
+function ServiceModal({ modal, selection, services, onClose, onChoose }) {
   const passengerLabel = `Hành khách ${modal.passenger + 1}`;
   const isBaggage = modal.type === "baggage";
-  const options = isBaggage ? BAGGAGE_OPTIONS : PROTECTION_OPTIONS;
-  return <div className="booking-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="booking-modal" role="dialog" aria-modal="true" aria-label={isBaggage ? "Chọn hành lý ký gửi" : "Chọn gói bảo vệ chuyến đi"} onMouseDown={(event) => event.stopPropagation()}><button className="booking-modal-close" onClick={onClose} aria-label="Đóng"><Icon>close</Icon></button><div className="booking-modal-icon"><Icon>{isBaggage ? "luggage" : "shield"}</Icon></div><p>{passengerLabel.toUpperCase()}</p><h2>{isBaggage ? "Hành lý ký gửi" : "Bảo vệ chuyến đi"}</h2><div className="booking-modal-rules">{isBaggage ? <><strong>Quy định hành lý</strong><span>Hành lý xách tay: tối đa 7kg. Mỗi kiện ký gửi tối đa 32kg, tổng kích thước không vượt 158cm.</span></> : <><strong>Điều khoản gói bảo vệ</strong><span>Quyền lợi và điều kiện đổi/hoàn được hiển thị trước khi thanh toán. Phí áp dụng theo từng hành khách.</span></>}</div><div className="booking-option-list">{options.map((option) => {
-    const active = isBaggage ? service.baggage.kg === option.kg : service.protection === option.id;
-    return <button className={active ? "active" : ""} key={isBaggage ? option.kg : option.id} onClick={() => onChoose(modal.passenger, isBaggage ? { baggage: { kg: option.kg, price: option.price } } : { protection: option.id })}><span><strong>{isBaggage ? option.label : option.name}</strong><small>{isBaggage ? option.kg ? "Áp dụng cho toàn hành trình" : "Chỉ gồm hành lý xách tay" : option.description}</small></span><b>{money(option.price)}</b><Icon>{active ? "check_circle" : "radio_button_unchecked"}</Icon></button>;
+  const field = isBaggage ? "baggageServiceId" : "protectionServiceId";
+  const selectedServiceId = selection[field];
+  return <div className="booking-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="booking-modal" role="dialog" aria-modal="true" aria-label={isBaggage ? "Chọn hành lý ký gửi" : "Chọn gói bảo vệ chuyến đi"} onMouseDown={(event) => event.stopPropagation()}><button className="booking-modal-close" onClick={onClose} aria-label="Đóng"><Icon>close</Icon></button><div className="booking-modal-icon"><Icon>{isBaggage ? "luggage" : "shield"}</Icon></div><p>{passengerLabel.toUpperCase()}</p><h2>{isBaggage ? "Hành lý ký gửi" : "Bảo vệ chuyến đi"}</h2><div className="booking-modal-rules">{isBaggage ? <><strong>Quy định hành lý</strong><span>Hành lý xách tay: tối đa 7kg. Mỗi kiện ký gửi tối đa 32kg, tổng kích thước không vượt 158cm.</span></> : <><strong>Điều khoản gói bảo vệ</strong><span>Quyền lợi và điều kiện đổi/hoàn được hiển thị trước khi thanh toán. Phí áp dụng theo từng hành khách.</span></>}</div><div className="booking-option-list"><button className={selectedServiceId == null ? "active" : ""} onClick={() => onChoose(modal.passenger, { [field]: null })}><span><strong>{isBaggage ? "Không thêm hành lý" : "Không thêm"}</strong><small>{isBaggage ? "Chỉ gồm hành lý xách tay" : "Không áp dụng bảo vệ bổ sung."}</small></span><b>{money(0)}</b><Icon>{selectedServiceId == null ? "check_circle" : "radio_button_unchecked"}</Icon></button>{services.map((service) => {
+    const active = selectedServiceId === service.maDichVu;
+    const details = isBaggage
+      ? (service.khoiLuongKg != null ? `${service.khoiLuongKg}kg · Áp dụng cho toàn hành trình` : "Áp dụng cho toàn hành trình")
+      : (service.moTa || "Không có mô tả bổ sung.");
+    return <button className={active ? "active" : ""} key={service.maDichVu} onClick={() => onChoose(modal.passenger, { [field]: service.maDichVu })}><span><strong>{service.tenDichVu}</strong><small>{details}</small></span><b>{money(service.gia)}</b><Icon>{active ? "check_circle" : "radio_button_unchecked"}</Icon></button>;
   })}</div></section></div>;
 }
 
-function createServiceState(count) { return Array.from({ length: count }, () => ({ baggage: { kg: 0, price: 0 }, protection: "none" })); }
+function createServiceState(count) { return Array.from({ length: count }, () => ({ baggageServiceId: null, protectionServiceId: null })); }
 function normalizeAssignments(assignments, count) { return Array.from({ length: count }, (_, index) => assignments[index] || null); }
-function normalizeServices(services, count) { return Array.from({ length: count }, (_, index) => services[index] || { baggage: { kg: 0, price: 0 }, protection: "none" }); }
-function protection(id) { return PROTECTION_OPTIONS.find((option) => option.id === id) || PROTECTION_OPTIONS[0]; }
+function normalizeServices(services, count) {
+  return Array.from({ length: count }, (_, index) => ({
+    baggageServiceId: services[index]?.baggageServiceId ?? null,
+    protectionServiceId: services[index]?.protectionServiceId ?? null,
+  }));
+}

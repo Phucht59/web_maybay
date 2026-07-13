@@ -88,7 +88,7 @@ public class BookingController : ControllerBase
 
         var services = await _db.DichVuThems.AsNoTracking()
             .Where(d => d.TrangThai == "Active")
-            .Select(d => new { d.MaDichVu, d.TenDichVu, d.LoaiDichVu, d.KhoiLuongKg, d.Gia, d.MoTa })
+            .Select(d => new { d.MaDichVu, d.TenDichVu, d.LoaiDichVu, d.KhoiLuongKg, d.Gia, d.MoTa, d.TrangThai })
             .ToListAsync();
 
         return Ok(new { flight, seats = seatMap, services, serverTime = DateTimeOffset.UtcNow });

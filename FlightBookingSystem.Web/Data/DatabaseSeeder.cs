@@ -20,6 +20,34 @@ public static class DatabaseSeeder
         await ClearDatabaseAsync(db);
         await DbInitializer.SeedAdminAsync(services);
 
+        var additionalServices = new List<DichVuThem>
+        {
+            new() { TenDichVu = "20kg", LoaiDichVu = "Baggage", KhoiLuongKg = 20, Gia = 350000m, MoTa = null, TrangThai = "Active" },
+            new() { TenDichVu = "25kg", LoaiDichVu = "Baggage", KhoiLuongKg = 25, Gia = 440000m, MoTa = null, TrangThai = "Active" },
+            new() { TenDichVu = "30kg", LoaiDichVu = "Baggage", KhoiLuongKg = 30, Gia = 520000m, MoTa = null, TrangThai = "Active" },
+            new() { TenDichVu = "40kg", LoaiDichVu = "Baggage", KhoiLuongKg = 40, Gia = 720000m, MoTa = null, TrangThai = "Active" },
+            new()
+            {
+                TenDichVu = "Bảo vệ chuyến đi",
+                LoaiDichVu = "Protection",
+                KhoiLuongKg = null,
+                Gia = 120000m,
+                MoTa = "Hỗ trợ khi chuyến bay bị gián đoạn và bảo vệ chi phí phát sinh đủ điều kiện.",
+                TrangThai = "Active",
+            },
+            new()
+            {
+                TenDichVu = "Bảo vệ linh hoạt",
+                LoaiDichVu = "Protection",
+                KhoiLuongKg = null,
+                Gia = 250000m,
+                MoTa = "Bao gồm bảo vệ chuyến đi và quyền đổi lịch/hoàn vé theo điều kiện áp dụng.",
+                TrangThai = "Active",
+            },
+        };
+        db.DichVuThems.AddRange(additionalServices);
+        await db.SaveChangesAsync();
+
         db.ChangeTracker.AutoDetectChangesEnabled = false;
         var rng = new Random(20260713);
 
@@ -124,7 +152,12 @@ public static class DatabaseSeeder
         await SeedFlightSeatsAndBookings(db, flights, seatsByAircraft, economy, business, first, rng, logger);
 
         db.ChangeTracker.AutoDetectChangesEnabled = true;
-        logger.LogInformation("Seeded {AirportCount} airports, {AircraftCount} aircraft types, {FlightCount} flights and dynamic flight seats.", airports.Count, aircraft.Count, flights.Count);
+        logger.LogInformation(
+            "Seeded {AirportCount} airports, {AircraftCount} aircraft types, {FlightCount} flights, {ServiceCount} additional services and dynamic flight seats.",
+            airports.Count,
+            aircraft.Count,
+            flights.Count,
+            additionalServices.Count);
     }
 
     private static SanBay Airport(string code, string name, string city) => new()
