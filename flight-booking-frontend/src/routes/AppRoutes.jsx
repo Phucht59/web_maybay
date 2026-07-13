@@ -1,4 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import FlightSelectionPage from "../pages/flight-selection/FlightSelectionPage";
+import BookingSeatPage from "../pages/booking/BookingSeatPage";
+import HomePage from "../pages/home/HomePage";
+import FlightSearchPage from "../pages/search/FlightSearchPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import DashboardPage from "../pages/admin/dashboard/DashboardPage";
@@ -25,17 +29,26 @@ import FlightListPage from "../pages/admin/flights/FlightListPage";
 import FlightFormPage from "../pages/admin/flights/FlightFormPage";
 import FlightDetailPage from "../pages/admin/flights/FlightDetailPage";
 import AdminLayout from "../layouts/AdminLayout";
+import MainLayout from "../layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<FlightSearchPage />} />
+        <Route path="/flight-selection" element={<FlightSelectionPage />} />
+      </Route>
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
       <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/booking/:id" element={<BookingSeatPage />} />
+        </Route>
+
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
@@ -55,22 +68,20 @@ function AppRoutes() {
           <Route path="danh-muc/hang-ghe/them" element={<SeatClassFormPage />} />
           <Route path="danh-muc/hang-ghe/:id" element={<SeatClassDetailPage />} />
           <Route path="danh-muc/hang-ghe/:id/sua" element={<SeatClassFormPage />} />
-          <Route path="danh-muc/may-bay" element={<AircraftListPage />} />
-          <Route path="danh-muc/may-bay/them" element={<AircraftFormPage />} />
-          <Route path="danh-muc/may-bay/:id" element={<AircraftDetailPage />} />
-          <Route path="danh-muc/may-bay/:id/sua" element={<AircraftFormPage />} />
-          <Route path="danh-muc/lo-trinh" element={<RouteListPage />} />
-          <Route path="danh-muc/lo-trinh/them" element={<RouteFormPage />} />
-          <Route path="danh-muc/lo-trinh/:id" element={<RouteDetailPage />} />
-          <Route path="danh-muc/lo-trinh/:id/sua" element={<RouteFormPage />} />
-          <Route path="danh-muc/ghe-may-bay" element={<SeatMapListPage />} />
-          <Route path="danh-muc/ghe-may-bay/:aircraftId" element={<SeatMapDetailPage />} />
-          <Route path="danh-muc/ghe-may-bay/:aircraftId/sinh-ghe" element={<SeatMapGeneratePage />} />
-          <Route path="danh-muc/ghe-may-bay/ghe/:seatId/sua" element={<SeatEditPage />} />
+          <Route path="danh-muc/loai-may-bay" element={<AircraftListPage />} />
+          <Route path="danh-muc/loai-may-bay/them" element={<AircraftFormPage />} />
+          <Route path="danh-muc/loai-may-bay/:id" element={<AircraftDetailPage />} />
+          <Route path="danh-muc/loai-may-bay/:id/sua" element={<AircraftFormPage />} />
+          <Route path="danh-muc/tuyen-bay" element={<RouteListPage />} />
+          <Route path="danh-muc/tuyen-bay/them" element={<RouteFormPage />} />
+          <Route path="danh-muc/tuyen-bay/:id" element={<RouteDetailPage />} />
+          <Route path="danh-muc/tuyen-bay/:id/sua" element={<RouteFormPage />} />
+          <Route path="danh-muc/so-do-ghe" element={<SeatMapListPage />} />
+          <Route path="danh-muc/so-do-ghe/them" element={<SeatMapGeneratePage />} />
+          <Route path="danh-muc/so-do-ghe/:id" element={<SeatMapDetailPage />} />
+          <Route path="danh-muc/so-do-ghe/:id/sua" element={<SeatEditPage />} />
         </Route>
       </Route>
-
-      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

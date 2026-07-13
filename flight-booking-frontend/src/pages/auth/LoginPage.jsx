@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import brandImage from "../../assets/auth/brand.png";
 import { authService } from "../../services/authService";
 
@@ -101,6 +101,7 @@ function EyeIcon({ hidden = false }) {
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [matKhau, setMatKhau] = useState("");
@@ -132,7 +133,12 @@ function LoginPage() {
         })
       );
 
-      navigate("/admin/dashboard", { replace: true });
+      if (data.vaiTro === "Admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        const redirect = searchParams.get("redirect");
+        navigate(redirect || "/", { replace: true });
+      }
     } catch (err) {
       console.error("LOGIN ERROR:", err);
 
