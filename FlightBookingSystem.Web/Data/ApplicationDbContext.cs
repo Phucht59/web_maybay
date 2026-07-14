@@ -130,6 +130,18 @@ namespace FlightBookingSystem.Web.Data
             modelBuilder.Entity<PhieuDatCho>().HasIndex(e => e.MaTaiKhoan).HasDatabaseName("IX_PhieuDatCho_TaiKhoan");
             modelBuilder.Entity<PhieuDatCho>().HasIndex(e => new { e.TrangThai, e.GiuDenLuc }).HasDatabaseName("IX_PhieuDatCho_HetHan");
             modelBuilder.Entity<PhieuDatCho>()
+                .Property(e => e.HoTenLienHe)
+                .IsRequired()
+                .HasMaxLength(160);
+            modelBuilder.Entity<PhieuDatCho>()
+                .Property(e => e.EmailLienHe)
+                .IsRequired()
+                .HasMaxLength(254);
+            modelBuilder.Entity<PhieuDatCho>()
+                .Property(e => e.SoDienThoaiLienHe)
+                .IsRequired()
+                .HasMaxLength(40);
+            modelBuilder.Entity<PhieuDatCho>()
                 .HasOne(p => p.TaiKhoan)
                 .WithMany(t => t.PhieuDatChos)
                 .HasForeignKey(p => p.MaTaiKhoan)

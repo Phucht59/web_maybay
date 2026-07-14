@@ -218,6 +218,15 @@ namespace FlightBookingSystem.Web.Models
 
         public int? MaTaiKhoan { get; set; }
 
+        [MaxLength(160)]
+        public string HoTenLienHe { get; set; } = string.Empty;
+
+        [MaxLength(254)]
+        public string EmailLienHe { get; set; } = string.Empty;
+
+        [MaxLength(40)]
+        public string SoDienThoaiLienHe { get; set; } = string.Empty;
+
         [MaxLength(30)]
         public string LoaiChuyenDi { get; set; } = "OneWay";
 
