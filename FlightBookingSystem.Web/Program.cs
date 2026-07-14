@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FlightBookingSystem.Web.Data;
+using FlightBookingSystem.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
             .LogTo(Console.WriteLine, LogLevel.Information);
     }
 });
+builder.Services.AddScoped<CheckoutValidationService>();
 
 // Authentication JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"]
