@@ -64,11 +64,13 @@ export default function BookingSeatPage() {
   const [mapFocusRequest, setMapFocusRequest] = useState(0);
   const [data, setData] = useState(null);
   const [paymentStarted, setPaymentStarted] = useState(false);
+  const [startingPayment, setStartingPayment] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(null);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const requestInFlight = useRef(false);
+  const startingPaymentRef = useRef(false);
   const seatMutationInFlight = useRef(new Set());
   const assignmentsRef = useRef(assignments);
   const contactSectionRef = useRef(null);
@@ -153,18 +155,11 @@ export default function BookingSeatPage() {
   );
 
   useEffect(() => {
-    setServicesByPassenger((current) => {
-      let changed = false;
-      const normalized = current.map((selection) => {
-        const baggageServiceId = serviceById.has(selection.baggageServiceId) ? selection.baggageServiceId : null;
-        const protectionServiceId = serviceById.has(selection.protectionServiceId) ? selection.protectionServiceId : null;
-        if (baggageServiceId === selection.baggageServiceId && protectionServiceId === selection.protectionServiceId) return selection;
-        changed = true;
-        return { baggageServiceId, protectionServiceId };
-      });
-      return changed ? normalized : current;
-    });
-  }, [serviceById]);
+    const normalized = sanitizeServiceSelections(servicesByPassenger, passengerCount, serviceById);
+    if (!normalized.changed) return;
+    setServicesByPassenger(normalized.services);
+    setError("Một dịch vụ đã chọn không còn khả dụng. Vui lòng chọn lại.");
+  }, [passengerCount, serviceById, servicesByPassenger]);
 
   const cabins = useMemo(() => ["first", "business", "economy"].map((fare) => {
     const grouped = new Map();
@@ -270,6 +265,7 @@ export default function BookingSeatPage() {
   const updateService = (passengerIndex, update) => {
     setServicesByPassenger((current) => current.map((item, index) => index === passengerIndex ? { ...item, ...update } : item));
     setModal(null);
+    setError("");
   };
 
   const updatePassenger = (passengerIndex, passenger) => {
@@ -286,34 +282,40 @@ export default function BookingSeatPage() {
       delete next[field];
       return next;
     });
+    setError("");
   };
 
   const startPayment = async () => {
-    if (selectedIds.length !== passengerCount || new Set(selectedIds).size !== passengerCount) {
-      setError(`Vui lòng chọn đủ ${passengerCount} ghế cho ${passengerCount} hành khách.`);
+    if (startingPaymentRef.current || startingPayment || paymentStarted) return;
+    const validation = validateBookingBeforePayment({
+      passengerCount,
+      selectedIds,
+      passengers,
+      flightDeparture: data?.flight?.gioKhoiHanh,
+      contactInfo,
+      servicesByPassenger,
+      serviceById,
+    });
+    if (!validation.valid) {
+      setError(validation.message);
+      if (validation.type === "passenger") {
+        setActivePassenger(validation.passengerIndex);
+        setModal({ type: "passenger", passenger: validation.passengerIndex });
+      } else if (validation.type === "contact") {
+        setContactInfo(validation.normalizedContact);
+        setContactErrors(validation.errors);
+        window.setTimeout(() => contactSectionRef.current?.querySelector(`[name="${validation.field}"]`)?.focus(), 0);
+      } else if (validation.type === "service") {
+        setServicesByPassenger(validation.normalizedServices);
+        setActivePassenger(validation.passengerIndex);
+      }
       return;
     }
-    const invalidPassengerIndex = Array.from({ length: passengerCount })
-      .findIndex((_, index) => !passengers[index] || !isPassengerValid(passengers[index], data?.flight?.gioKhoiHanh));
-    if (passengers.length !== passengerCount || invalidPassengerIndex >= 0) {
-      const passengerIndex = invalidPassengerIndex >= 0 ? invalidPassengerIndex : 0;
-      setError(`Vui lòng hoàn thành thông tin Hành khách ${passengerIndex + 1}.`);
-      setActivePassenger(passengerIndex);
-      setModal({ type: "passenger", passenger: passengerIndex });
-      return;
-    }
-    const normalizedContact = normalizeContactInfo(contactInfo);
-    const nextContactErrors = validateContactInfo(normalizedContact);
-    if (Object.keys(nextContactErrors).length > 0) {
-      setContactInfo(normalizedContact);
-      setContactErrors(nextContactErrors);
-      setError("Vui lòng kiểm tra thông tin liên hệ của đơn đặt chỗ.");
-      const firstError = Object.keys(nextContactErrors)[0];
-      window.setTimeout(() => contactSectionRef.current?.querySelector(`[name="${firstError}"]`)?.focus(), 0);
-      return;
-    }
-    setContactInfo(normalizedContact);
+    setContactInfo(validation.normalizedContact);
     setContactErrors({});
+    setServicesByPassenger(validation.normalizedServices);
+    startingPaymentRef.current = true;
+    setStartingPayment(true);
     try {
       const result = await bookingService.startPaymentHold(flightId, sessionId, passengerCount, selectedIds);
       setPaymentStarted(true);
@@ -322,7 +324,10 @@ export default function BookingSeatPage() {
       setError("");
       await loadSeatMap(true);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || "Một hoặc nhiều ghế vừa không còn trống. Vui lòng chọn lại.");
+      setError(requestError.response?.data?.message || "Không thể bắt đầu thanh toán. Vui lòng kiểm tra lại thông tin và thử lại.");
+    } finally {
+      startingPaymentRef.current = false;
+      setStartingPayment(false);
     }
   };
 
@@ -353,7 +358,7 @@ export default function BookingSeatPage() {
       <div className="booking-route"><strong>{data.flight.maSanBayDi}</strong><Icon>flight_takeoff</Icon><strong>{data.flight.maSanBayDen}</strong></div>
       <div className="booking-flight-meta"><span>{data.flight.soHieuChuyenBay}</span><span>{date(data.flight.gioKhoiHanh)}</span><span>{time(data.flight.gioKhoiHanh)} - {time(data.flight.gioHaCanh)}</span></div>
     </section>
-    {error && <div className="booking-alert"><Icon>warning</Icon>{error}</div>}
+    {error && <div className="booking-alert" role="alert" aria-live="polite"><Icon>warning</Icon>{error}</div>}
 
     <section className="booking-workspace">
       <div className="booking-map-card">
@@ -386,7 +391,7 @@ export default function BookingSeatPage() {
         <BookingContactInfo contactInfo={contactInfo} errors={contactErrors} onChange={updateContactInfo} disabled={paymentStarted} sectionRef={contactSectionRef} />
         <div className="booking-cost"><div><span>Ghế đã chọn</span><b>{money(seatTotal)}</b></div><div><span>Dịch vụ hành khách</span><b>{money(serviceTotal)}</b></div></div>
         <div className="booking-total"><span>Tổng tiền</span><strong>{money(total)}</strong></div>
-        {paymentStarted ? <><button className="booking-cancel" onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay">Thanh toán ngay <Icon>credit_card</Icon></button></> : <button className="booking-pay" disabled={selectedIds.length !== passengerCount} onClick={startPayment}>Tiếp tục thanh toán <Icon>arrow_forward</Icon></button>}
+        {paymentStarted ? <><button className="booking-cancel" onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay">Thanh toán ngay <Icon>credit_card</Icon></button></> : <button className="booking-pay" disabled={startingPayment || selectedIds.length !== passengerCount} onClick={startPayment}>{startingPayment ? "Đang xử lý..." : <>Tiếp tục thanh toán <Icon>arrow_forward</Icon></>}</button>}
       </aside>
     </section>
     {modal?.type === "passenger" && <PassengerInfoModal passengerIndex={modal.passenger} passenger={passengers[modal.passenger]} seat={seatById.get(assignments[modal.passenger])} flightDeparture={data.flight.gioKhoiHanh} onSave={(passenger) => updatePassenger(modal.passenger, passenger)} onClose={() => setModal(null)} disabled={paymentStarted} />}
@@ -606,4 +611,103 @@ function normalizeServices(services, count) {
     baggageServiceId: services[index]?.baggageServiceId ?? null,
     protectionServiceId: services[index]?.protectionServiceId ?? null,
   }));
+}
+
+function sanitizeServiceSelections(services, passengerCount, serviceById) {
+  const allowedFields = new Set(["baggageServiceId", "protectionServiceId"]);
+  let changed = !Array.isArray(services) || services.length !== passengerCount;
+  let firstInvalidPassenger = null;
+  let firstInvalidField = null;
+  const normalized = Array.from({ length: passengerCount }, (_, index) => {
+    const selection = services?.[index];
+    const hasUnexpectedField = !selection || typeof selection !== "object"
+      || Object.keys(selection).some((field) => !allowedFields.has(field));
+    const validateId = (field, expectedType) => {
+      const serviceId = selection?.[field] ?? null;
+      if (serviceId == null) return null;
+      const service = Number.isInteger(serviceId) ? serviceById.get(serviceId) : null;
+      const valid = service
+        && String(service.trangThai || "").toLowerCase() === "active"
+        && String(service.loaiDichVu || "").toLowerCase() === expectedType;
+      if (valid) return serviceId;
+      if (firstInvalidPassenger == null) {
+        firstInvalidPassenger = index;
+        firstInvalidField = field;
+      }
+      return null;
+    };
+    const baggageServiceId = validateId("baggageServiceId", "baggage");
+    const protectionServiceId = validateId("protectionServiceId", "protection");
+    if (hasUnexpectedField
+      || baggageServiceId !== selection?.baggageServiceId
+      || protectionServiceId !== selection?.protectionServiceId) changed = true;
+    return { baggageServiceId, protectionServiceId };
+  });
+  if (changed && firstInvalidPassenger == null) firstInvalidPassenger = 0;
+  return { services: normalized, changed, firstInvalidPassenger, firstInvalidField };
+}
+
+function validateBookingBeforePayment({
+  passengerCount,
+  selectedIds,
+  passengers,
+  flightDeparture,
+  contactInfo,
+  servicesByPassenger,
+  serviceById,
+}) {
+  if (selectedIds.length !== passengerCount || new Set(selectedIds).size !== passengerCount) {
+    return {
+      valid: false,
+      type: "seat",
+      passengerIndex: null,
+      field: null,
+      message: `Vui lòng chọn đủ ${passengerCount} ghế cho ${passengerCount} hành khách.`,
+    };
+  }
+
+  const invalidPassengerIndex = Array.from({ length: passengerCount })
+    .findIndex((_, index) => !passengers?.[index] || !isPassengerValid(passengers[index], flightDeparture));
+  if (!Array.isArray(passengers) || passengers.length !== passengerCount || invalidPassengerIndex >= 0) {
+    const passengerIndex = invalidPassengerIndex >= 0
+      ? invalidPassengerIndex
+      : Math.min(passengers?.length || 0, passengerCount - 1);
+    return { valid: false, type: "passenger", passengerIndex, field: null, message: `Vui lòng hoàn thành thông tin Hành khách ${passengerIndex + 1}.` };
+  }
+
+  const normalizedContact = normalizeContactInfo(contactInfo);
+  const contactErrors = validateContactInfo(normalizedContact);
+  const firstContactError = Object.keys(contactErrors)[0];
+  if (firstContactError) {
+    return {
+      valid: false,
+      type: "contact",
+      passengerIndex: null,
+      field: firstContactError,
+      message: "Vui lòng kiểm tra thông tin liên hệ của đơn đặt chỗ.",
+      normalizedContact,
+      errors: contactErrors,
+    };
+  }
+
+  const normalizedServices = sanitizeServiceSelections(servicesByPassenger, passengerCount, serviceById);
+  if (normalizedServices.changed) {
+    return {
+      valid: false,
+      type: "service",
+      passengerIndex: normalizedServices.firstInvalidPassenger,
+      field: normalizedServices.firstInvalidField,
+      message: "Một dịch vụ đã chọn không còn khả dụng. Vui lòng chọn lại.",
+      normalizedServices: normalizedServices.services,
+    };
+  }
+  return {
+    valid: true,
+    type: null,
+    passengerIndex: null,
+    field: null,
+    message: "",
+    normalizedContact,
+    normalizedServices: normalizedServices.services,
+  };
 }
