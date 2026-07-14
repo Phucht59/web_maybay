@@ -19,7 +19,7 @@ public class BookingCheckoutController : ControllerBase
     }
 
     [HttpPost("checkout")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<CheckoutPricingResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -36,16 +36,9 @@ public class BookingCheckoutController : ControllerBase
 
         var result = await _validationService.ValidateAsync(accountId, request, cancellationToken);
 
-        if (result.IsValid)
+        if (result.IsValid && result.Pricing is not null)
         {
-            return Ok(new
-            {
-                isValid = true,
-                result.Message,
-                result.MaChuyenBay,
-                result.SoLuongHanhKhach,
-                result.ServerTime
-            });
+            return Ok(result.Pricing);
         }
 
         var error = new { result.Message };

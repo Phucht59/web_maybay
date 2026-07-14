@@ -12,22 +12,15 @@ public enum CheckoutValidationOutcome
 public sealed record CheckoutValidationResult(
     CheckoutValidationOutcome Outcome,
     string Message,
-    int MaChuyenBay = 0,
-    int SoLuongHanhKhach = 0,
-    DateTimeOffset? ServerTime = null)
+    CheckoutPricingResponse? Pricing = null)
 {
     public bool IsValid => Outcome == CheckoutValidationOutcome.Valid;
 
-    public static CheckoutValidationResult Success(
-        int maChuyenBay,
-        int soLuongHanhKhach,
-        DateTimeOffset serverTime) =>
+    public static CheckoutValidationResult Success(CheckoutPricingResponse pricing) =>
         new(
             CheckoutValidationOutcome.Valid,
             "Dữ liệu checkout hợp lệ.",
-            maChuyenBay,
-            soLuongHanhKhach,
-            serverTime);
+            pricing);
 
     public static CheckoutValidationResult Failure(
         CheckoutValidationOutcome outcome,

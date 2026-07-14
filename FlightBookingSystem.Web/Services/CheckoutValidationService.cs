@@ -103,7 +103,8 @@ public sealed class CheckoutValidationService
                 seat.GiuBoiTaiKhoanId,
                 seat.SessionId,
                 seat.GiuDenLuc,
-                seat.MaPhieuDatChoDangGiu
+                seat.MaPhieuDatChoDangGiu,
+                seat.GiaGhe
             })
             .ToListAsync(cancellationToken);
 
@@ -164,6 +165,8 @@ public sealed class CheckoutValidationService
             .Distinct()
             .ToList();
 
+        var servicesById = new Dictionary<int, CheckoutServicePricingDto>();
+
         if (serviceIds.Count > 0)
         {
             var services = await _db.DichVuThems
@@ -172,7 +175,10 @@ public sealed class CheckoutValidationService
                 .Select(service => new
                 {
                     service.MaDichVu,
+                    service.TenDichVu,
                     service.LoaiDichVu,
+                    service.KhoiLuongKg,
+                    service.Gia,
                     service.TrangThai
                 })
                 .ToListAsync(cancellationToken);
@@ -211,12 +217,65 @@ public sealed class CheckoutValidationService
                         "Mỗi hành khách chỉ được chọn tối đa một dịch vụ Baggage và một dịch vụ Protection.");
                 }
             }
+
+            if (services.Any(service => service.Gia < 0))
+            {
+                return CheckoutValidationResult.Failure(
+                    CheckoutValidationOutcome.Conflict,
+                    "Không thể xác định giá checkout tại thời điểm hiện tại.");
+            }
+
+            servicesById = services.ToDictionary(
+                service => service.MaDichVu,
+                service => new CheckoutServicePricingDto(
+                    service.MaDichVu,
+                    service.TenDichVu,
+                    service.LoaiDichVu,
+                    service.KhoiLuongKg,
+                    service.Gia));
         }
 
-        // Task 2.5 must re-check every seat invariant inside the booking transaction.
-        return CheckoutValidationResult.Success(
+        if (seats.Any(seat => seat.GiaGhe < 0))
+        {
+            return CheckoutValidationResult.Failure(
+                CheckoutValidationOutcome.Conflict,
+                "Không thể xác định giá checkout tại thời điểm hiện tại.");
+        }
+
+        var seatsById = seats.ToDictionary(seat => seat.MaGheChuyenBay);
+        var passengerPricing = request.HanhKhachs
+            .Select((passenger, index) =>
+            {
+                var seat = seatsById[passenger.MaGheChuyenBay];
+                var selectedServices = passenger.MaDichVus
+                    .Select(serviceId => servicesById[serviceId])
+                    .ToList();
+                var passengerServiceTotal = selectedServices.Sum(service => service.Gia);
+
+                return new CheckoutPassengerPricingDto(
+                    index + 1,
+                    passenger.MaGheChuyenBay,
+                    seat.GiaGhe,
+                    selectedServices,
+                    passengerServiceTotal,
+                    seat.GiaGhe + passengerServiceTotal);
+            })
+            .ToList();
+
+        var seatTotal = seats.Sum(seat => seat.GiaGhe);
+        var serviceTotal = passengerPricing.Sum(passenger => passenger.TongTienDichVu);
+        var pricing = new CheckoutPricingResponse(
+            true,
+            "Dữ liệu checkout hợp lệ.",
             flight.MaChuyenBay,
             request.HanhKhachs.Count,
+            passengerPricing,
+            seatTotal,
+            serviceTotal,
+            seatTotal + serviceTotal,
             new DateTimeOffset(DateTime.SpecifyKind(now, DateTimeKind.Utc)));
+
+        // Task 2.5 must re-check every seat invariant inside the booking transaction.
+        return CheckoutValidationResult.Success(pricing);
     }
 }
