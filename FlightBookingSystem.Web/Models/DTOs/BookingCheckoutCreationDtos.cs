@@ -6,6 +6,7 @@ public sealed record CheckoutCreatedResponse(
     int MaPhieuDatCho,
     string MaDatCho,
     string TrangThai,
+    DateTimeOffset GiuDenLuc,
     CheckoutPricingResponse Pricing,
     DateTimeOffset ServerTime);
 

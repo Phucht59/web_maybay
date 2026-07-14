@@ -12,6 +12,9 @@ public sealed class CheckoutCreationService
 {
     private const int BookingCodeAttempts = 5;
 
+    private static readonly TimeSpan PaymentWindow =
+        TimeSpan.FromMinutes(10);
+
     private static readonly HashSet<string> BookableFlightStatuses =
         new(StringComparer.Ordinal) { "Scheduled", "Delayed" };
 
@@ -49,7 +52,9 @@ public sealed class CheckoutCreationService
             try
             {
                 var now = DateTime.UtcNow;
-                var serverTime = new DateTimeOffset(now);
+                var paymentDeadline = now.Add(PaymentWindow);
+                var serverTime = new DateTimeOffset(now, TimeSpan.Zero);
+                var paymentDeadlineOffset = new DateTimeOffset(paymentDeadline, TimeSpan.Zero);
 
                 var accountIsActive = await _db.TaiKhoans
                     .AsNoTracking()
@@ -266,9 +271,9 @@ public sealed class CheckoutCreationService
                     LoaiChuyenDi = request.LoaiChuyenDi,
                     SoLuongHanhKhach = passengerRequests.Count,
                     NgayDat = now,
-                    GiuDenLuc = null,
+                    GiuDenLuc = paymentDeadline,
                     TongTien = total,
-                    TrangThai = "Holding",
+                    TrangThai = "PaymentPending",
                     NgayTao = now,
                     NgayCapNhat = now
                 };
@@ -328,6 +333,7 @@ public sealed class CheckoutCreationService
                     }
 
                     selectedSeat.PhieuDatChoDangGiu = booking;
+                    selectedSeat.GiuDenLuc = paymentDeadline;
                     selectedSeat.UpdatedAt = now;
                     selectedSeat.PhienBan++;
                 }
@@ -341,6 +347,7 @@ public sealed class CheckoutCreationService
                     booking.MaPhieuDatCho,
                     booking.MaDatCho,
                     booking.TrangThai,
+                    paymentDeadlineOffset,
                     pricing,
                     serverTime);
 
