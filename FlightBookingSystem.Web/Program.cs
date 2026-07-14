@@ -105,6 +105,23 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+if (args.Contains("--sync-reference-data"))
+{
+    try
+    {
+        var result = await ReferenceDataSeeder.SyncAdditionalServicesAsync(app.Services);
+        Console.WriteLine(
+            $"Reference data synchronized successfully. Inserted={result.Inserted}, Updated={result.Updated}, Unchanged={result.Unchanged}, DuplicatesDeactivated={result.DuplicatesDeactivated}, Database={result.DatabasePath}. Exiting.");
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Reference data synchronization failed: {exception.Message}");
+        Environment.ExitCode = 1;
+    }
+
+    return;
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

@@ -20,31 +20,7 @@ public static class DatabaseSeeder
         await ClearDatabaseAsync(db);
         await DbInitializer.SeedAdminAsync(services);
 
-        var additionalServices = new List<DichVuThem>
-        {
-            new() { TenDichVu = "20kg", LoaiDichVu = "Baggage", KhoiLuongKg = 20, Gia = 350000m, MoTa = null, TrangThai = "Active" },
-            new() { TenDichVu = "25kg", LoaiDichVu = "Baggage", KhoiLuongKg = 25, Gia = 440000m, MoTa = null, TrangThai = "Active" },
-            new() { TenDichVu = "30kg", LoaiDichVu = "Baggage", KhoiLuongKg = 30, Gia = 520000m, MoTa = null, TrangThai = "Active" },
-            new() { TenDichVu = "40kg", LoaiDichVu = "Baggage", KhoiLuongKg = 40, Gia = 720000m, MoTa = null, TrangThai = "Active" },
-            new()
-            {
-                TenDichVu = "Bảo vệ chuyến đi",
-                LoaiDichVu = "Protection",
-                KhoiLuongKg = null,
-                Gia = 120000m,
-                MoTa = "Hỗ trợ khi chuyến bay bị gián đoạn và bảo vệ chi phí phát sinh đủ điều kiện.",
-                TrangThai = "Active",
-            },
-            new()
-            {
-                TenDichVu = "Bảo vệ linh hoạt",
-                LoaiDichVu = "Protection",
-                KhoiLuongKg = null,
-                Gia = 250000m,
-                MoTa = "Bao gồm bảo vệ chuyến đi và quyền đổi lịch/hoàn vé theo điều kiện áp dụng.",
-                TrangThai = "Active",
-            },
-        };
+        var additionalServices = AdditionalServiceCatalog.CreateEntities();
         db.DichVuThems.AddRange(additionalServices);
         await db.SaveChangesAsync();
 

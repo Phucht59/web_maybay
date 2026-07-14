@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { bookingService } from "../../services/bookingService";
 import AircraftSeatMap from "../../components/seat-map/AircraftSeatMap";
+import PassengerInfoModal, {
+  createEmptyPassenger,
+  createPassengerState,
+  isPassengerValid,
+  normalizePassengers,
+} from "../../components/booking/PassengerInfoModal";
 import aircraftTop from "../../assets/booking/aircraft-seatmap-v3.png";
 import "../../styles/pages/booking-seat.css";
 
@@ -45,6 +51,7 @@ export default function BookingSeatPage() {
   const [activePassenger, setActivePassenger] = useState(0);
   const [assignments, setAssignments] = useState(() => createAssignments(initialPassengerCount));
   const [servicesByPassenger, setServicesByPassenger] = useState(() => createServiceState(initialPassengerCount));
+  const [passengers, setPassengers] = useState(() => createPassengerState(initialPassengerCount));
   const [selectedFare, setSelectedFare] = useState(() => normalizeFare(searchParams.get("fare")));
   const [mapFocusRequest, setMapFocusRequest] = useState(0);
   const [data, setData] = useState(null);
@@ -240,6 +247,7 @@ export default function BookingSeatPage() {
     assignmentsRef.current = nextAssignments;
     setAssignments(nextAssignments);
     setServicesByPassenger((current) => normalizeServices(current, count));
+    setPassengers((current) => normalizePassengers(current, count));
     // When a passenger is added, the next seat selected belongs to that new passenger.
     setActivePassenger((current) => count > passengerCount ? count - 1 : Math.min(current, count - 1));
     setError("");
@@ -255,14 +263,30 @@ export default function BookingSeatPage() {
     setModal(null);
   };
 
+  const updatePassenger = (passengerIndex, passenger) => {
+    setPassengers((current) => current.map((item, index) => index === passengerIndex ? passenger : item));
+    setModal(null);
+    setError("");
+  };
+
   const startPayment = async () => {
     if (selectedIds.length !== passengerCount || new Set(selectedIds).size !== passengerCount) {
       setError(`Vui lòng chọn đủ ${passengerCount} ghế cho ${passengerCount} hành khách.`);
       return;
     }
+    const invalidPassengerIndex = Array.from({ length: passengerCount })
+      .findIndex((_, index) => !passengers[index] || !isPassengerValid(passengers[index], data?.flight?.gioKhoiHanh));
+    if (passengers.length !== passengerCount || invalidPassengerIndex >= 0) {
+      const passengerIndex = invalidPassengerIndex >= 0 ? invalidPassengerIndex : 0;
+      setError(`Vui lòng hoàn thành thông tin Hành khách ${passengerIndex + 1}.`);
+      setActivePassenger(passengerIndex);
+      setModal({ type: "passenger", passenger: passengerIndex });
+      return;
+    }
     try {
       const result = await bookingService.startPaymentHold(flightId, sessionId, passengerCount, selectedIds);
       setPaymentStarted(true);
+      setModal(null);
       setSecondsLeft(secondsUntil(result.holdUntil, result.serverTime));
       setError("");
       await loadSeatMap(true);
@@ -319,19 +343,22 @@ export default function BookingSeatPage() {
         <div className="booking-passenger-list">{assignments.map((seatId, index) => {
           const seat = seatById.get(seatId);
           const selection = servicesByPassenger[index];
+          const passenger = passengers[index] || createEmptyPassenger();
+          const passengerComplete = isPassengerValid(passenger, data.flight.gioKhoiHanh);
           const baggageService = serviceById.get(selection.baggageServiceId);
           const protectionService = serviceById.get(selection.protectionServiceId);
           const baggageLabel = baggageService
             ? (baggageService.khoiLuongKg != null ? `${baggageService.khoiLuongKg}kg` : baggageService.tenDichVu)
             : "Hành lý";
-          return <article className={`booking-passenger ${index === activePassenger && !paymentStarted ? "active" : ""}`} key={index} onClick={() => !paymentStarted && setActivePassenger(index)}><div className="booking-passenger-title"><span><Icon>person</Icon>Hành khách {index + 1}</span><b>{seat?.soGhe || "Chưa chọn"}</b></div><div className="booking-passenger-actions"><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "baggage", passenger: index }); }}><Icon>luggage</Icon><span>{baggageLabel}</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "protection", passenger: index }); }}><Icon>shield</Icon><span>{protectionService?.tenDichVu || "Bảo vệ"}</span></button></div></article>;
+          return <article className={`booking-passenger ${index === activePassenger && !paymentStarted ? "active" : ""}`} key={index} onClick={() => !paymentStarted && setActivePassenger(index)}><div className="booking-passenger-title"><span><Icon>person</Icon>Hành khách {index + 1}</span><b>{seat?.soGhe || "Chưa chọn"}</b></div><div className="booking-passenger-personal"><strong>{passenger.hoTen || "Chưa nhập thông tin"}</strong><span className={passengerComplete ? "complete" : "incomplete"}>{passengerComplete ? "Đã hoàn thành" : "Chưa nhập thông tin"}</span></div><div className="booking-passenger-actions"><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "passenger", passenger: index }); }}><Icon>badge</Icon><span>Thông tin</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "baggage", passenger: index }); }}><Icon>luggage</Icon><span>{baggageLabel}</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "protection", passenger: index }); }}><Icon>shield</Icon><span>{protectionService?.tenDichVu || "Bảo vệ"}</span></button></div></article>;
         })}</div>
         <div className="booking-cost"><div><span>Ghế đã chọn</span><b>{money(seatTotal)}</b></div><div><span>Dịch vụ hành khách</span><b>{money(serviceTotal)}</b></div></div>
         <div className="booking-total"><span>Tổng tiền</span><strong>{money(total)}</strong></div>
         {paymentStarted ? <><button className="booking-cancel" onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay">Thanh toán ngay <Icon>credit_card</Icon></button></> : <button className="booking-pay" disabled={selectedIds.length !== passengerCount} onClick={startPayment}>Tiếp tục thanh toán <Icon>arrow_forward</Icon></button>}
       </aside>
     </section>
-    {modal && <ServiceModal modal={modal} selection={servicesByPassenger[modal.passenger]} services={modal.type === "baggage" ? baggageServices : protectionServices} onClose={() => setModal(null)} onChoose={updateService} />}
+    {modal?.type === "passenger" && <PassengerInfoModal passengerIndex={modal.passenger} passenger={passengers[modal.passenger]} seat={seatById.get(assignments[modal.passenger])} flightDeparture={data.flight.gioKhoiHanh} onSave={(passenger) => updatePassenger(modal.passenger, passenger)} onClose={() => setModal(null)} disabled={paymentStarted} />}
+    {modal && modal.type !== "passenger" && <ServiceModal modal={modal} selection={servicesByPassenger[modal.passenger]} services={modal.type === "baggage" ? baggageServices : protectionServices} onClose={() => setModal(null)} onChoose={updateService} />}
   </main>;
 }
 
