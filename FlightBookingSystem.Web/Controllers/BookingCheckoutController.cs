@@ -11,15 +11,15 @@ namespace FlightBookingSystem.Web.Controllers;
 [Route("api/booking")]
 public class BookingCheckoutController : ControllerBase
 {
-    private readonly CheckoutValidationService _validationService;
+    private readonly CheckoutCreationService _creationService;
 
-    public BookingCheckoutController(CheckoutValidationService validationService)
+    public BookingCheckoutController(CheckoutCreationService creationService)
     {
-        _validationService = validationService;
+        _creationService = creationService;
     }
 
     [HttpPost("checkout")]
-    [ProducesResponseType<CheckoutPricingResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<CheckoutCreatedResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -34,11 +34,11 @@ public class BookingCheckoutController : ControllerBase
             return Unauthorized(new { message = "Thông tin tài khoản trong token không hợp lệ." });
         }
 
-        var result = await _validationService.ValidateAsync(accountId, request, cancellationToken);
+        var result = await _creationService.CreateAsync(accountId, request, cancellationToken);
 
-        if (result.IsValid && result.Pricing is not null)
+        if (result.IsCreated && result.Response is not null)
         {
-            return Ok(result.Pricing);
+            return StatusCode(StatusCodes.Status201Created, result.Response);
         }
 
         var error = new { result.Message };
@@ -48,7 +48,7 @@ public class BookingCheckoutController : ControllerBase
             CheckoutValidationOutcome.Unauthorized => Unauthorized(error),
             CheckoutValidationOutcome.NotFound => NotFound(error),
             CheckoutValidationOutcome.Conflict => Conflict(error),
-            _ => StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể xác thực checkout." })
+            _ => StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể tạo checkout." })
         };
     }
 }

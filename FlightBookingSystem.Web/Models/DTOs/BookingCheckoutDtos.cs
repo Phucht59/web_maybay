@@ -146,6 +146,7 @@ public class CheckoutContactRequest : IValidatableObject
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Số điện thoại liên hệ là bắt buộc.")]
+    [MaxLength(40, ErrorMessage = "Số điện thoại liên hệ tối đa 40 ký tự.")]
     [RegularExpression(@"^[0-9\s+\-()]+$", ErrorMessage = "Số điện thoại chỉ được chứa chữ số, khoảng trắng và các ký tự +, -, (, ).")]
     public string SoDienThoai { get; set; } = string.Empty;
 
