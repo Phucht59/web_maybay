@@ -130,6 +130,7 @@ function LoginPage() {
           hoTen: data.hoTen,
           vaiTro: data.vaiTro,
           email: data.email,
+          soDienThoai: data.soDienThoai || "",
         })
       );
 

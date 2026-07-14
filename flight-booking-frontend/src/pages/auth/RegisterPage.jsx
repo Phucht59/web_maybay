@@ -184,7 +184,7 @@ function RegisterPage() {
       const data = await authService.register({
         hoTen,
         email,
-        soDienThoai,
+        soDienThoai: soDienThoai.trim() || null,
         matKhau,
         xacNhanMatKhau,
       });
@@ -196,6 +196,7 @@ function RegisterPage() {
           hoTen: data.hoTen,
           vaiTro: data.vaiTro,
           email: data.email,
+          soDienThoai: data.soDienThoai || soDienThoai.trim(),
         })
       );
 
@@ -283,7 +284,7 @@ function RegisterPage() {
             </div>
 
             <div className="mb-3">
-              <label className="form-label" htmlFor="soDienThoai">Số điện thoại</label>
+              <label className="form-label" htmlFor="soDienThoai">Số điện thoại (không bắt buộc)</label>
               <div className="auth-input-wrap">
                 <span className="auth-input-icon" aria-hidden="true">
                   <PhoneIcon />

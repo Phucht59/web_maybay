@@ -8,6 +8,12 @@ import PassengerInfoModal, {
   isPassengerValid,
   normalizePassengers,
 } from "../../components/booking/PassengerInfoModal";
+import BookingContactInfo, {
+  createContactInfo,
+  normalizeContactInfo,
+  validateContactInfo,
+} from "../../components/booking/BookingContactInfo";
+import { authService } from "../../services/authService";
 import aircraftTop from "../../assets/booking/aircraft-seatmap-v3.png";
 import "../../styles/pages/booking-seat.css";
 
@@ -52,6 +58,8 @@ export default function BookingSeatPage() {
   const [assignments, setAssignments] = useState(() => createAssignments(initialPassengerCount));
   const [servicesByPassenger, setServicesByPassenger] = useState(() => createServiceState(initialPassengerCount));
   const [passengers, setPassengers] = useState(() => createPassengerState(initialPassengerCount));
+  const [contactInfo, setContactInfo] = useState(() => createContactInfo(authService.getCurrentUser()));
+  const [contactErrors, setContactErrors] = useState({});
   const [selectedFare, setSelectedFare] = useState(() => normalizeFare(searchParams.get("fare")));
   const [mapFocusRequest, setMapFocusRequest] = useState(0);
   const [data, setData] = useState(null);
@@ -63,6 +71,7 @@ export default function BookingSeatPage() {
   const requestInFlight = useRef(false);
   const seatMutationInFlight = useRef(new Set());
   const assignmentsRef = useRef(assignments);
+  const contactSectionRef = useRef(null);
 
   useEffect(() => {
     assignmentsRef.current = assignments;
@@ -269,6 +278,16 @@ export default function BookingSeatPage() {
     setError("");
   };
 
+  const updateContactInfo = (field, value) => {
+    setContactInfo((current) => ({ ...current, [field]: value }));
+    setContactErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
+
   const startPayment = async () => {
     if (selectedIds.length !== passengerCount || new Set(selectedIds).size !== passengerCount) {
       setError(`Vui lòng chọn đủ ${passengerCount} ghế cho ${passengerCount} hành khách.`);
@@ -283,6 +302,18 @@ export default function BookingSeatPage() {
       setModal({ type: "passenger", passenger: passengerIndex });
       return;
     }
+    const normalizedContact = normalizeContactInfo(contactInfo);
+    const nextContactErrors = validateContactInfo(normalizedContact);
+    if (Object.keys(nextContactErrors).length > 0) {
+      setContactInfo(normalizedContact);
+      setContactErrors(nextContactErrors);
+      setError("Vui lòng kiểm tra thông tin liên hệ của đơn đặt chỗ.");
+      const firstError = Object.keys(nextContactErrors)[0];
+      window.setTimeout(() => contactSectionRef.current?.querySelector(`[name="${firstError}"]`)?.focus(), 0);
+      return;
+    }
+    setContactInfo(normalizedContact);
+    setContactErrors({});
     try {
       const result = await bookingService.startPaymentHold(flightId, sessionId, passengerCount, selectedIds);
       setPaymentStarted(true);
@@ -352,6 +383,7 @@ export default function BookingSeatPage() {
             : "Hành lý";
           return <article className={`booking-passenger ${index === activePassenger && !paymentStarted ? "active" : ""}`} key={index} onClick={() => !paymentStarted && setActivePassenger(index)}><div className="booking-passenger-title"><span><Icon>person</Icon>Hành khách {index + 1}</span><b>{seat?.soGhe || "Chưa chọn"}</b></div><div className="booking-passenger-personal"><strong>{passenger.hoTen || "Chưa nhập thông tin"}</strong><span className={passengerComplete ? "complete" : "incomplete"}>{passengerComplete ? "Đã hoàn thành" : "Chưa nhập thông tin"}</span></div><div className="booking-passenger-actions"><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "passenger", passenger: index }); }}><Icon>badge</Icon><span>Thông tin</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "baggage", passenger: index }); }}><Icon>luggage</Icon><span>{baggageLabel}</span></button><button disabled={paymentStarted} onClick={(event) => { event.stopPropagation(); setModal({ type: "protection", passenger: index }); }}><Icon>shield</Icon><span>{protectionService?.tenDichVu || "Bảo vệ"}</span></button></div></article>;
         })}</div>
+        <BookingContactInfo contactInfo={contactInfo} errors={contactErrors} onChange={updateContactInfo} disabled={paymentStarted} sectionRef={contactSectionRef} />
         <div className="booking-cost"><div><span>Ghế đã chọn</span><b>{money(seatTotal)}</b></div><div><span>Dịch vụ hành khách</span><b>{money(serviceTotal)}</b></div></div>
         <div className="booking-total"><span>Tổng tiền</span><strong>{money(total)}</strong></div>
         {paymentStarted ? <><button className="booking-cancel" onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay">Thanh toán ngay <Icon>credit_card</Icon></button></> : <button className="booking-pay" disabled={selectedIds.length !== passengerCount} onClick={startPayment}>Tiếp tục thanh toán <Icon>arrow_forward</Icon></button>}

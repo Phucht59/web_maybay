@@ -15,7 +15,7 @@ namespace FlightBookingSystem.Web.Models
         public string MatKhauHash { get; set; } = string.Empty;
 
         [MaxLength(30)]
-        public string SoDienThoai { get; set; } = string.Empty;
+        public string? SoDienThoai { get; set; }
 
         [MaxLength(30)]
         public string VaiTro { get; set; } = "Customer";
