@@ -308,7 +308,7 @@ namespace FlightBookingSystem.Web.Models
         public int MaHanhKhach { get; set; }
 
         [MaxLength(30)]
-        public string SoVeDienTu { get; set; } = string.Empty;
+        public string? SoVeDienTu { get; set; }
 
         public decimal GiaVe { get; set; }
 

@@ -162,7 +162,10 @@ namespace FlightBookingSystem.Web.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Ve>().HasKey(e => e.MaVe);
-            modelBuilder.Entity<Ve>().HasIndex(e => e.SoVeDienTu).IsUnique();
+            modelBuilder.Entity<Ve>()
+                .HasIndex(e => e.SoVeDienTu)
+                .IsUnique()
+                .HasFilter("SoVeDienTu IS NOT NULL");
             modelBuilder.Entity<Ve>().HasIndex(e => new { e.MaChangDatCho, e.MaHanhKhach }).IsUnique();
             modelBuilder.Entity<Ve>().HasIndex(e => e.MaGheChuyenBay)
                 .IsUnique()
