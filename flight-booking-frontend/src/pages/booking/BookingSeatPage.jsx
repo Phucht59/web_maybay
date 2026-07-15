@@ -47,6 +47,40 @@ function secondsUntil(holdUntil, serverTime) {
   return Number.isFinite(end) && Number.isFinite(now) ? Math.max(0, Math.floor((end - now) / 1000)) : HOLD_SECONDS;
 }
 
+function buildCheckoutPayload({ flightId, sessionId, passengers, assignments, servicesByPassenger, contactInfo }) {
+  return {
+    maChuyenBay: Number(flightId),
+    sessionId,
+    loaiChuyenDi: "OneWay",
+    thongTinLienHe: {
+      hoTenLienHe: String(contactInfo.hoTenLienHe || "").trim(),
+      email: String(contactInfo.email || "").trim(),
+      soDienThoai: String(contactInfo.soDienThoai || "").trim(),
+    },
+    hanhKhachs: passengers.map((passenger, index) => {
+      const selection = servicesByPassenger[index] || {};
+      const maDichVus = [...new Set([
+        selection.baggageServiceId,
+        selection.protectionServiceId,
+      ].filter((serviceId) => Number.isInteger(serviceId) && serviceId > 0))];
+      const ngayHetHanGiayTo = String(passenger.ngayHetHanGiayTo || "").trim();
+
+      return {
+        maGheChuyenBay: assignments[index],
+        hoTen: String(passenger.hoTen || "").trim(),
+        ngaySinh: String(passenger.ngaySinh || "").trim(),
+        gioiTinh: passenger.gioiTinh,
+        quocTich: String(passenger.quocTich || "").trim(),
+        loaiGiayTo: passenger.loaiGiayTo,
+        soGiayTo: String(passenger.soGiayTo || "").trim(),
+        ...(ngayHetHanGiayTo ? { ngayHetHanGiayTo } : {}),
+        loaiHanhKhach: passenger.loaiHanhKhach,
+        maDichVus,
+      };
+    }),
+  };
+}
+
 export default function BookingSeatPage() {
   const { id: flightId } = useParams();
   const [searchParams] = useSearchParams();
@@ -65,12 +99,14 @@ export default function BookingSeatPage() {
   const [data, setData] = useState(null);
   const [paymentStarted, setPaymentStarted] = useState(false);
   const [startingPayment, setStartingPayment] = useState(false);
+  const [creatingCheckout, setCreatingCheckout] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(null);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const requestInFlight = useRef(false);
   const startingPaymentRef = useRef(false);
+  const creatingCheckoutRef = useRef(false);
   const seatMutationInFlight = useRef(new Set());
   const assignmentsRef = useRef(assignments);
   const contactSectionRef = useRef(null);
@@ -331,6 +367,40 @@ export default function BookingSeatPage() {
     }
   };
 
+  const handleCreateCheckout = async () => {
+    if (creatingCheckoutRef.current || creatingCheckout || !paymentStarted || secondsLeft === null || secondsLeft <= 0) return;
+
+    creatingCheckoutRef.current = true;
+    setCreatingCheckout(true);
+    setError("");
+    try {
+      const payload = buildCheckoutPayload({
+        flightId,
+        sessionId,
+        passengers,
+        assignments,
+        servicesByPassenger,
+        contactInfo,
+      });
+      const result = await bookingService.createCheckout(payload);
+      const bookingId = Number(result?.maPhieuDatCho);
+      if (!Number.isInteger(bookingId) || bookingId <= 0) {
+        throw new Error("Backend không trả về mã booking hợp lệ.");
+      }
+
+      navigate(`/payment/${bookingId}`);
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message
+        || (requestError.message === "Backend không trả về mã booking hợp lệ." ? requestError.message : null)
+        || "Không thể tạo đơn đặt chỗ. Vui lòng thử lại.",
+      );
+    } finally {
+      creatingCheckoutRef.current = false;
+      setCreatingCheckout(false);
+    }
+  };
+
   const cancelPayment = async () => {
     try {
       await bookingService.cancelPaymentHold(flightId, sessionId);
@@ -391,7 +461,7 @@ export default function BookingSeatPage() {
         <BookingContactInfo contactInfo={contactInfo} errors={contactErrors} onChange={updateContactInfo} disabled={paymentStarted} sectionRef={contactSectionRef} />
         <div className="booking-cost"><div><span>Ghế đã chọn</span><b>{money(seatTotal)}</b></div><div><span>Dịch vụ hành khách</span><b>{money(serviceTotal)}</b></div></div>
         <div className="booking-total"><span>Tổng tiền</span><strong>{money(total)}</strong></div>
-        {paymentStarted ? <><button className="booking-cancel" onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay">Thanh toán ngay <Icon>credit_card</Icon></button></> : <button className="booking-pay" disabled={startingPayment || selectedIds.length !== passengerCount} onClick={startPayment}>{startingPayment ? "Đang xử lý..." : <>Tiếp tục thanh toán <Icon>arrow_forward</Icon></>}</button>}
+        {paymentStarted ? <><button className="booking-cancel" disabled={creatingCheckout} onClick={cancelPayment}>Hủy giữ chỗ</button><button className="booking-pay" disabled={creatingCheckout || secondsLeft === null || secondsLeft <= 0} onClick={handleCreateCheckout}>{creatingCheckout ? "Đang tạo đơn đặt chỗ..." : <>Thanh toán ngay <Icon>credit_card</Icon></>}</button></> : <button className="booking-pay" disabled={startingPayment || selectedIds.length !== passengerCount} onClick={startPayment}>{startingPayment ? "Đang xử lý..." : <>Tiếp tục thanh toán <Icon>arrow_forward</Icon></>}</button>}
       </aside>
     </section>
     {modal?.type === "passenger" && <PassengerInfoModal passengerIndex={modal.passenger} passenger={passengers[modal.passenger]} seat={seatById.get(assignments[modal.passenger])} flightDeparture={data.flight.gioKhoiHanh} onSave={(passenger) => updatePassenger(modal.passenger, passenger)} onClose={() => setModal(null)} disabled={paymentStarted} />}
