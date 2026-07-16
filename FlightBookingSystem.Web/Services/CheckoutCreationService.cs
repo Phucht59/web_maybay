@@ -22,10 +22,14 @@ public sealed class CheckoutCreationService
         new(StringComparer.Ordinal) { "Baggage", "Protection" };
 
     private readonly ApplicationDbContext _db;
+    private readonly ILogger<CheckoutCreationService> _logger;
 
-    public CheckoutCreationService(ApplicationDbContext db)
+    public CheckoutCreationService(
+        ApplicationDbContext db,
+        ILogger<CheckoutCreationService> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     public async Task<CheckoutCreationResult> CreateAsync(
@@ -151,6 +155,19 @@ public sealed class CheckoutCreationService
                     return await RollbackFailureAsync(
                         CheckoutValidationOutcome.BadRequest,
                         "Một hoặc nhiều ghế không tồn tại hoặc không thuộc chuyến bay đã chọn.");
+                }
+
+                var cleanedExpiredCheckout = await CleanupExpiredCheckoutsAsync(
+                    seatIds,
+                    now,
+                    cancellationToken);
+
+                if (cleanedExpiredCheckout)
+                {
+                    foreach (var seat in seats)
+                    {
+                        await _db.Entry(seat).ReloadAsync(cancellationToken);
+                    }
                 }
 
                 if (seats.Any(seat =>
@@ -354,8 +371,9 @@ public sealed class CheckoutCreationService
                 await transaction.CommitAsync(cancellationToken);
                 return CheckoutCreationResult.Success(response);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException exception)
             {
+                LogDatabaseConflict(exception, accountId, request);
                 await transaction.RollbackAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
                 return CheckoutCreationResult.Failure(
@@ -364,6 +382,7 @@ public sealed class CheckoutCreationService
             }
             catch (SqliteException exception) when (IsExpectedSqliteConflict(exception))
             {
+                LogDatabaseConflict(exception, accountId, request);
                 await transaction.RollbackAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
                 return CheckoutCreationResult.Failure(
@@ -373,11 +392,108 @@ public sealed class CheckoutCreationService
         }
         catch (SqliteException exception) when (IsExpectedSqliteConflict(exception))
         {
+            LogDatabaseConflict(exception, accountId, request);
             _db.ChangeTracker.Clear();
             return CheckoutCreationResult.Failure(
                 CheckoutValidationOutcome.Conflict,
                 "Hệ thống đang xử lý một checkout khác. Vui lòng thử lại.");
         }
+    }
+
+    private async Task<bool> CleanupExpiredCheckoutsAsync(
+        IReadOnlyCollection<int> selectedSeatIds,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var expiredBookings = await _db.PhieuDatChos
+            .Where(booking =>
+                booking.TrangThai == "PaymentPending" &&
+                booking.GiuDenLuc.HasValue &&
+                booking.GiuDenLuc.Value <= now &&
+                booking.Ves.Any(ticket =>
+                    ticket.TrangThaiVe == "PaymentPending" &&
+                    selectedSeatIds.Contains(ticket.MaGheChuyenBay)))
+            .Include(booking => booking.Ves.Where(ticket =>
+                ticket.TrangThaiVe == "PaymentPending"))
+            .Include(booking => booking.GheDangGius)
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
+        if (expiredBookings.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var booking in expiredBookings)
+        {
+            booking.TrangThai = "Expired";
+            booking.NgayCapNhat = now;
+
+            foreach (var ticket in booking.Ves)
+            {
+                ticket.TrangThaiVe = "Canceled";
+            }
+
+            foreach (var seat in booking.GheDangGius)
+            {
+                if (seat.MaPhieuDatChoDangGiu != booking.MaPhieuDatCho)
+                {
+                    continue;
+                }
+
+                if (HasActiveSessionHold(seat, now))
+                {
+                    seat.MaPhieuDatChoDangGiu = null;
+                    seat.PhieuDatChoDangGiu = null;
+                    seat.UpdatedAt = now;
+                    seat.PhienBan++;
+                    continue;
+                }
+
+                ResetSeat(seat, now);
+            }
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private static bool HasActiveSessionHold(GheChuyenBay seat, DateTime now) =>
+        string.Equals(seat.TrangThaiGhe, "Held", StringComparison.Ordinal) &&
+        seat.GiuBoiTaiKhoanId.HasValue &&
+        !string.IsNullOrWhiteSpace(seat.SessionId) &&
+        seat.GiuDenLuc.HasValue &&
+        seat.GiuDenLuc.Value > now;
+
+    private static void ResetSeat(GheChuyenBay seat, DateTime now)
+    {
+        seat.TrangThaiGhe = "Available";
+        seat.GiuBoiTaiKhoanId = null;
+        seat.MaPhieuDatChoDangGiu = null;
+        seat.PhieuDatChoDangGiu = null;
+        seat.SessionId = null;
+        seat.GiuDenLuc = null;
+        seat.UpdatedAt = now;
+        seat.PhienBan++;
+    }
+
+    private void LogDatabaseConflict(
+        Exception exception,
+        int accountId,
+        CheckoutRequest request)
+    {
+        var seatIds = request.HanhKhachs?
+            .Where(passenger => passenger is not null)
+            .Select(passenger => passenger.MaGheChuyenBay)
+            .ToArray() ?? [];
+
+        _logger.LogError(
+            exception,
+            "Checkout database conflict. AccountId={AccountId}, MaChuyenBay={MaChuyenBay}, SeatIds={SeatIds}, PassengerCount={PassengerCount}",
+            accountId,
+            request.MaChuyenBay,
+            string.Join(',', seatIds),
+            request.HanhKhachs?.Count ?? 0);
     }
 
     private async Task<string?> GenerateUniqueBookingCodeAsync(
