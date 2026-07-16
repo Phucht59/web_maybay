@@ -29,16 +29,80 @@ public sealed class PaymentsController : ControllerBase
 
     private readonly ApplicationDbContext _db;
     private readonly CheckoutCreationService _checkoutCreationService;
+    private readonly PaymentSimulationService _paymentSimulationService;
     private readonly ILogger<PaymentsController> _logger;
 
     public PaymentsController(
         ApplicationDbContext db,
         CheckoutCreationService checkoutCreationService,
+        PaymentSimulationService paymentSimulationService,
         ILogger<PaymentsController> logger)
     {
         _db = db;
         _checkoutCreationService = checkoutCreationService;
+        _paymentSimulationService = paymentSimulationService;
         _logger = logger;
+    }
+
+    [HttpGet("{paymentId:int}/status")]
+    [ProducesResponseType<PaymentStatusResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PaymentErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<PaymentErrorResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStatus(
+        int paymentId,
+        CancellationToken cancellationToken)
+    {
+        var accountIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(accountIdClaim, out var accountId) || accountId <= 0)
+        {
+            return Unauthorized(Error(
+                "Unauthorized",
+                "Thông tin tài khoản trong token không hợp lệ."));
+        }
+
+        if (paymentId <= 0)
+        {
+            return NotFound(Error(
+                "PaymentNotFound",
+                "Không tìm thấy thanh toán."));
+        }
+
+        var isAdmin = User.IsInRole("Admin");
+        var payment = await _db.ThanhToans
+            .AsNoTracking()
+            .Where(candidate =>
+                candidate.MaThanhToan == paymentId &&
+                (isAdmin || candidate.PhieuDatCho.MaTaiKhoan == accountId))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (payment is null)
+        {
+            return NotFound(Error(
+                "PaymentNotFound",
+                "Không tìm thấy thanh toán."));
+        }
+
+        var now = DateTime.UtcNow;
+        var evaluation = _paymentSimulationService.Evaluate(payment, now);
+        var response = new PaymentStatusResponse(
+            payment.MaThanhToan,
+            payment.MaPhieuDatCho,
+            payment.TrangThai,
+            payment.SoTien,
+            payment.PhuongThuc,
+            payment.NhaCungCap ?? string.Empty,
+            ToUtc(payment.NgayTao),
+            payment.NgayThanhToan.HasValue
+                ? ToUtc(payment.NgayThanhToan.Value)
+                : null,
+            payment.LyDoLoi,
+            evaluation.EvaluationState.ToString(),
+            evaluation.ProcessingDurationSeconds,
+            evaluation.ProcessingDueAt,
+            evaluation.GraceExpiresAt,
+            evaluation.ServerTime);
+
+        return Ok(response);
     }
 
     [HttpPost]

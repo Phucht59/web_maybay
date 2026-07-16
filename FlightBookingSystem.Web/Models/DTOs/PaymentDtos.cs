@@ -17,6 +17,22 @@ public sealed record PaymentResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset ServerTime);
 
+public sealed record PaymentStatusResponse(
+    int PaymentId,
+    int BookingId,
+    string Status,
+    decimal Amount,
+    string Method,
+    string Provider,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? PaidAt,
+    string? FailureReason,
+    string SimulationState,
+    int ProcessingDurationSeconds,
+    DateTimeOffset ProcessingDueAt,
+    DateTimeOffset GraceExpiresAt,
+    DateTimeOffset ServerTime);
+
 public sealed record PaymentErrorResponse(
     string Code,
     string Message,
