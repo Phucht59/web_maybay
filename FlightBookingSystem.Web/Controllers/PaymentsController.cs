@@ -30,24 +30,30 @@ public sealed class PaymentsController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly CheckoutCreationService _checkoutCreationService;
     private readonly PaymentSimulationService _paymentSimulationService;
+    private readonly PaymentFinalizationService _paymentFinalizationService;
     private readonly ILogger<PaymentsController> _logger;
 
     public PaymentsController(
         ApplicationDbContext db,
         CheckoutCreationService checkoutCreationService,
         PaymentSimulationService paymentSimulationService,
+        PaymentFinalizationService paymentFinalizationService,
         ILogger<PaymentsController> logger)
     {
         _db = db;
         _checkoutCreationService = checkoutCreationService;
         _paymentSimulationService = paymentSimulationService;
+        _paymentFinalizationService = paymentFinalizationService;
         _logger = logger;
     }
 
     [HttpGet("{paymentId:int}/status")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType<PaymentStatusResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<PaymentErrorResponse>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<PaymentErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<PaymentErrorResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<PaymentErrorResponse>(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetStatus(
         int paymentId,
         CancellationToken cancellationToken)
@@ -68,6 +74,46 @@ public sealed class PaymentsController : ControllerBase
         }
 
         var isAdmin = User.IsInRole("Admin");
+        var access = await _db.ThanhToans
+            .AsNoTracking()
+            .Where(candidate =>
+                candidate.MaThanhToan == paymentId &&
+                (isAdmin || candidate.PhieuDatCho.MaTaiKhoan == accountId))
+            .Select(candidate => new PaymentAccessSnapshot(candidate.TrangThai))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (access is null)
+        {
+            return NotFound(Error(
+                "PaymentNotFound",
+                "Không tìm thấy thanh toán."));
+        }
+
+        var now = DateTime.UtcNow;
+        if (string.Equals(access.Status, "Pending", StringComparison.Ordinal))
+        {
+            var finalization = await _paymentFinalizationService.FinalizeIfReadyAsync(
+                paymentId,
+                now,
+                cancellationToken);
+
+            if (finalization.State == PaymentFinalizationState.Conflict)
+            {
+                return Conflict(Error(
+                    "PaymentFinalizationConflict",
+                    "Dữ liệu booking không nhất quán để hoàn tất thanh toán."));
+            }
+
+            if (finalization.State == PaymentFinalizationState.Failed)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    Error(
+                        "PaymentFinalizationFailed",
+                        "Không thể hoàn tất thanh toán."));
+            }
+        }
+
         var payment = await _db.ThanhToans
             .AsNoTracking()
             .Where(candidate =>
@@ -82,7 +128,6 @@ public sealed class PaymentsController : ControllerBase
                 "Không tìm thấy thanh toán."));
         }
 
-        var now = DateTime.UtcNow;
         var evaluation = _paymentSimulationService.Evaluate(payment, now);
         var response = new PaymentStatusResponse(
             payment.MaThanhToan,
@@ -568,4 +613,6 @@ public sealed class PaymentsController : ControllerBase
         string Method,
         string? Provider,
         DateTime CreatedAt);
+
+    private sealed record PaymentAccessSnapshot(string Status);
 }
