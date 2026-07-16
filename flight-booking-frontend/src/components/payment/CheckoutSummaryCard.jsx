@@ -60,10 +60,17 @@ function Icon({ children, className = "" }) {
   );
 }
 
-export default function CheckoutSummaryCard({ checkout }) {
+export default function CheckoutSummaryCard({ checkout, countdown }) {
   const flight = checkout?.chuyenBay;
   const pricing = checkout?.pricing;
   const duration = getDuration(flight?.gioKhoiHanh, flight?.gioHaCanh);
+  const isPaymentPending = checkout?.trangThai === "PaymentPending";
+  const isWarning = Boolean(
+    isPaymentPending
+      && countdown?.isValid
+      && !countdown.isExpired
+      && countdown.remainingSeconds <= 120,
+  );
   const seatClasses = [...new Set(
     (checkout?.hanhKhachs || [])
       .map((passenger) => passenger.ve?.ghe?.tenHangGhe)
@@ -119,11 +126,27 @@ export default function CheckoutSummaryCard({ checkout }) {
         </dl>
       </section>
 
-      <div className="payment-summary__deadline">
-        <Icon>schedule</Icon>
+      <div
+        className={`payment-summary__deadline${isWarning ? " is-warning" : ""}${countdown?.isExpired ? " is-expired" : ""}${!isPaymentPending ? " is-inactive" : ""}${isPaymentPending && !countdown?.isValid ? " is-invalid" : ""}`}
+        aria-live={countdown?.isExpired ? "polite" : "off"}
+      >
+        <Icon>{countdown?.isExpired ? "timer_off" : "timer"}</Icon>
         <div>
-          <span>Vui lòng hoàn tất thanh toán trước:</span>
-          <strong>{formatDateTime(checkout?.giuDenLuc)}</strong>
+          <span>{isPaymentPending ? "Thời gian giữ chỗ còn lại" : "Trạng thái đặt chỗ"}</span>
+          <strong className="payment-summary__countdown-value" role={isPaymentPending ? "timer" : undefined}>
+            {!isPaymentPending
+              ? checkout?.trangThai || "Không xác định"
+              : countdown?.isValid
+                ? countdown.formattedTime
+                : "Không xác định"}
+          </strong>
+          {countdown?.isExpired ? <em>Đã hết thời hạn thanh toán</em> : null}
+          {isPaymentPending && !countdown?.isValid ? (
+            <em>Không thể xác định thời hạn từ dữ liệu backend.</em>
+          ) : null}
+          {isPaymentPending && countdown?.isValid ? (
+            <small>Hoàn tất trước: {formatDateTime(checkout?.giuDenLuc)}</small>
+          ) : null}
         </div>
       </div>
     </section>

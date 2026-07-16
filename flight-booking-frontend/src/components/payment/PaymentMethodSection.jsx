@@ -5,9 +5,13 @@ const PAYMENT_METHODS = [
   { code: "QrBanking", label: "QR Banking", icon: "qr_code_2" },
 ];
 
-export default function PaymentMethodSection({ value, onChange }) {
+export default function PaymentMethodSection({ value, onChange, disabled = false }) {
   return (
-    <section className="payment-card payment-method" aria-labelledby="payment-method-title">
+    <section
+      className={`payment-card payment-method${disabled ? " is-disabled" : ""}`}
+      aria-labelledby="payment-method-title"
+      aria-disabled={disabled || undefined}
+    >
       <div className="payment-card__heading">
         <span className="payment-card__icon">
           <span className="material-symbols-outlined" aria-hidden="true">payments</span>
@@ -18,12 +22,12 @@ export default function PaymentMethodSection({ value, onChange }) {
         </div>
       </div>
 
-      <fieldset className="payment-method__fieldset">
+      <fieldset className="payment-method__fieldset" disabled={disabled}>
         <legend>Chọn nhóm phương thức</legend>
         <div className="payment-method__grid">
           {PAYMENT_METHODS.map((method) => (
             <label
-              className={`payment-method__option${value === method.code ? " is-selected" : ""}`}
+              className={`payment-method__option${value === method.code ? " is-selected" : ""}${disabled ? " is-disabled" : ""}`}
               key={method.code}
             >
               <input
@@ -31,7 +35,10 @@ export default function PaymentMethodSection({ value, onChange }) {
                 name="payment-method"
                 value={method.code}
                 checked={value === method.code}
-                onChange={(event) => onChange(event.target.value)}
+                disabled={disabled}
+                onChange={(event) => {
+                  if (!disabled) onChange(event.target.value);
+                }}
               />
               <span className="material-symbols-outlined" aria-hidden="true">{method.icon}</span>
               <strong>{method.label}</strong>

@@ -4,6 +4,7 @@ import CheckoutInformationCard from "../../components/payment/CheckoutInformatio
 import CheckoutSummaryCard from "../../components/payment/CheckoutSummaryCard";
 import PaymentFlowHeader from "../../components/payment/PaymentFlowHeader";
 import PaymentMethodSection from "../../components/payment/PaymentMethodSection";
+import usePaymentCountdown from "../../hooks/usePaymentCountdown";
 import { bookingService } from "../../services/bookingService";
 import "../../styles/pages/payment-page.css";
 
@@ -37,6 +38,14 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState("Card");
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  const isPaymentPending = checkout?.trangThai === "PaymentPending";
+  const countdown = usePaymentCountdown({
+    deadline: checkout?.giuDenLuc,
+    serverTime: checkout?.serverTime,
+    enabled: isPaymentPending,
+  });
+  const paymentControlsDisabled = !isPaymentPending || !countdown.isValid || countdown.isExpired;
+
   useEffect(() => {
     let isActive = true;
     const normalizedBookingId = Number(bookingId);
@@ -69,6 +78,10 @@ export default function PaymentPage() {
       isActive = false;
     };
   }, [bookingId, loadAttempt]);
+
+  useEffect(() => {
+    if (paymentControlsDisabled) setTermsAccepted(false);
+  }, [paymentControlsDisabled]);
 
   const normalizedBookingId = Number(bookingId);
   const canRetry = Number.isInteger(normalizedBookingId) && normalizedBookingId > 0;
@@ -136,15 +149,23 @@ export default function PaymentPage() {
               contact={checkout.thongTinLienHe}
               passengers={checkout.hanhKhachs}
             />
-            <PaymentMethodSection value={paymentMethod} onChange={setPaymentMethod} />
+            <PaymentMethodSection
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              disabled={paymentControlsDisabled}
+            />
 
             <section className="payment-card payment-confirmation" aria-labelledby="payment-confirmation-title">
               <h2 id="payment-confirmation-title">Xác nhận thông tin</h2>
-              <label className="payment-confirmation__terms" htmlFor="payment-terms">
+              <label
+                className={`payment-confirmation__terms${paymentControlsDisabled ? " is-disabled" : ""}`}
+                htmlFor="payment-terms"
+              >
                 <input
                   id="payment-terms"
                   type="checkbox"
                   checked={termsAccepted}
+                  disabled={paymentControlsDisabled}
                   onChange={(event) => setTermsAccepted(event.target.checked)}
                 />
                 <span>Tôi xác nhận thông tin đặt vé là chính xác và đồng ý với điều kiện giá vé, chính sách hoàn/hủy vé.</span>
@@ -153,13 +174,19 @@ export default function PaymentPage() {
           </div>
 
           <aside className="payment-page__aside" aria-label="Tóm tắt thanh toán">
-            <CheckoutSummaryCard checkout={checkout} />
+            <CheckoutSummaryCard checkout={checkout} countdown={countdown} />
             <section className="payment-card payment-page__action">
               <button type="button" disabled aria-describedby="payment-unavailable-note">
                 Thanh toán {formatMoney(checkout.pricing?.tongThanhToan)}
               </button>
               <p id="payment-unavailable-note">
-                Chức năng tạo giao dịch sẽ được kết nối ở task tiếp theo.
+                {countdown.isExpired
+                  ? "Thời hạn thanh toán đã kết thúc. Không thể tạo giao dịch mới."
+                  : !isPaymentPending
+                    ? `Booking hiện ở trạng thái ${checkout.trangThai || "không xác định"}. Không thể tạo giao dịch mới.`
+                    : !countdown.isValid
+                      ? "Không thể xác định thời hạn thanh toán. Vui lòng thử tải lại thông tin đặt chỗ."
+                      : "Chức năng tạo giao dịch sẽ được kết nối ở task tiếp theo."}
               </p>
             </section>
           </aside>
