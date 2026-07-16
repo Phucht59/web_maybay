@@ -81,6 +81,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<CheckoutValidationService>();
 builder.Services.AddScoped<CheckoutCreationService>();
 builder.Services.AddScoped<CheckoutSummaryService>();
+builder.Services.AddScoped<PaymentSimulationService>();
 
 // Authentication JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"]

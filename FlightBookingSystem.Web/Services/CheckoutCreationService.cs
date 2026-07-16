@@ -410,7 +410,8 @@ public sealed class CheckoutCreationService
                 booking.MaPhieuDatCho == bookingId &&
                 booking.TrangThai == "PaymentPending" &&
                 booking.GiuDenLuc.HasValue &&
-                booking.GiuDenLuc.Value <= now)
+                booking.GiuDenLuc.Value <= now &&
+                !booking.ThanhToans.Any(payment => payment.TrangThai == "Pending"))
             .Include(booking => booking.Ves.Where(ticket =>
                 ticket.TrangThaiVe == "PaymentPending"))
             .Include(booking => booking.GheDangGius)
@@ -437,6 +438,7 @@ public sealed class CheckoutCreationService
                 booking.TrangThai == "PaymentPending" &&
                 booking.GiuDenLuc.HasValue &&
                 booking.GiuDenLuc.Value <= now &&
+                !booking.ThanhToans.Any(payment => payment.TrangThai == "Pending") &&
                 booking.Ves.Any(ticket =>
                     ticket.TrangThaiVe == "PaymentPending" &&
                     selectedSeatIds.Contains(ticket.MaGheChuyenBay)))

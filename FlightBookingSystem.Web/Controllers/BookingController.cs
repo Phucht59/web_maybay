@@ -232,7 +232,13 @@ public class BookingController : ControllerBase
     {
         var now = DateTime.UtcNow;
         var expired = await _db.GheChuyenBays
-            .Where(g => g.MaChuyenBay == flightId && g.TrangThaiGhe == "Held" && g.GiuDenLuc < now)
+            .Where(g =>
+                g.MaChuyenBay == flightId &&
+                g.TrangThaiGhe == "Held" &&
+                g.GiuDenLuc < now &&
+                (g.MaPhieuDatChoDangGiu == null ||
+                 !g.PhieuDatChoDangGiu!.ThanhToans.Any(payment =>
+                     payment.TrangThai == "Pending")))
             .ToListAsync();
         foreach (var seat in expired) ResetSeat(seat, now);
         if (expired.Count > 0) await _db.SaveChangesAsync();
