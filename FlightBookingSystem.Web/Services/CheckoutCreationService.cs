@@ -400,6 +400,33 @@ public sealed class CheckoutCreationService
         }
     }
 
+    public async Task<bool> ExpireBookingIfNeededAsync(
+        int bookingId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var expiredBooking = await _db.PhieuDatChos
+            .Where(booking =>
+                booking.MaPhieuDatCho == bookingId &&
+                booking.TrangThai == "PaymentPending" &&
+                booking.GiuDenLuc.HasValue &&
+                booking.GiuDenLuc.Value <= now)
+            .Include(booking => booking.Ves.Where(ticket =>
+                ticket.TrangThaiVe == "PaymentPending"))
+            .Include(booking => booking.GheDangGius)
+            .AsSplitQuery()
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (expiredBooking is null)
+        {
+            return false;
+        }
+
+        ExpireBooking(expiredBooking, now);
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private async Task<bool> CleanupExpiredCheckoutsAsync(
         IReadOnlyCollection<int> selectedSeatIds,
         DateTime now,
@@ -426,36 +453,41 @@ public sealed class CheckoutCreationService
 
         foreach (var booking in expiredBookings)
         {
-            booking.TrangThai = "Expired";
-            booking.NgayCapNhat = now;
-
-            foreach (var ticket in booking.Ves)
-            {
-                ticket.TrangThaiVe = "Canceled";
-            }
-
-            foreach (var seat in booking.GheDangGius)
-            {
-                if (seat.MaPhieuDatChoDangGiu != booking.MaPhieuDatCho)
-                {
-                    continue;
-                }
-
-                if (HasActiveSessionHold(seat, now))
-                {
-                    seat.MaPhieuDatChoDangGiu = null;
-                    seat.PhieuDatChoDangGiu = null;
-                    seat.UpdatedAt = now;
-                    seat.PhienBan++;
-                    continue;
-                }
-
-                ResetSeat(seat, now);
-            }
+            ExpireBooking(booking, now);
         }
 
         await _db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private static void ExpireBooking(PhieuDatCho booking, DateTime now)
+    {
+        booking.TrangThai = "Expired";
+        booking.NgayCapNhat = now;
+
+        foreach (var ticket in booking.Ves)
+        {
+            ticket.TrangThaiVe = "Canceled";
+        }
+
+        foreach (var seat in booking.GheDangGius)
+        {
+            if (seat.MaPhieuDatChoDangGiu != booking.MaPhieuDatCho)
+            {
+                continue;
+            }
+
+            if (HasActiveSessionHold(seat, now))
+            {
+                seat.MaPhieuDatChoDangGiu = null;
+                seat.PhieuDatChoDangGiu = null;
+                seat.UpdatedAt = now;
+                seat.PhienBan++;
+                continue;
+            }
+
+            ResetSeat(seat, now);
+        }
     }
 
     private static bool HasActiveSessionHold(GheChuyenBay seat, DateTime now) =>
