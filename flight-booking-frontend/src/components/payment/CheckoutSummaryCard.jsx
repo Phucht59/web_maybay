@@ -60,13 +60,69 @@ function Icon({ children, className = "" }) {
   );
 }
 
-export default function CheckoutSummaryCard({ checkout, countdown }) {
+function getPaymentProgress(paymentState, paymentErrorCode) {
+  if (paymentState === "submitting") {
+    return {
+      className: "is-processing",
+      icon: "sync",
+      label: "Trạng thái yêu cầu",
+      value: "Đang tiếp nhận yêu cầu thanh toán",
+      detail: "Vui lòng giữ nguyên trang trong khi yêu cầu được gửi.",
+    };
+  }
+
+  if (paymentState === "accepted") {
+    return {
+      className: "is-accepted",
+      icon: "hourglass_top",
+      label: "Trạng thái thanh toán",
+      value: "Thanh toán đang chờ xử lý",
+      detail: "Máy chủ đã tiếp nhận yêu cầu. Chưa có kết quả thanh toán cuối cùng.",
+    };
+  }
+
+  if (paymentState === "uncertainError") {
+    return {
+      className: "is-uncertain",
+      icon: "help",
+      label: "Trạng thái yêu cầu",
+      value: "Chưa xác định máy chủ đã tiếp nhận hay chưa",
+      detail: "Có thể gửi lại chính yêu cầu trước đó bằng cùng mã idempotency.",
+    };
+  }
+
+  if (paymentState !== "rejected") return null;
+
+  const rejectedViews = {
+    BookingExpired: ["timer_off", "Đã hết thời hạn thanh toán"],
+    PaymentAlreadyPending: ["hourglass_top", "Booking đã có thanh toán đang xử lý"],
+    PaymentAlreadySucceeded: ["task_alt", "Booking đã được thanh toán"],
+  };
+  const [icon, value] = rejectedViews[paymentErrorCode] || ["block", "Thanh toán không thể tiếp tục"];
+
+  return {
+    className: "is-rejected",
+    icon,
+    label: "Trạng thái thanh toán",
+    value,
+    detail: "Kết luận này được trả về từ máy chủ.",
+  };
+}
+
+export default function CheckoutSummaryCard({
+  checkout,
+  countdown,
+  paymentState = "idle",
+  paymentErrorCode = "",
+}) {
   const flight = checkout?.chuyenBay;
   const pricing = checkout?.pricing;
   const duration = getDuration(flight?.gioKhoiHanh, flight?.gioHaCanh);
   const isPaymentPending = checkout?.trangThai === "PaymentPending";
+  const paymentProgress = getPaymentProgress(paymentState, paymentErrorCode);
   const isWarning = Boolean(
-    isPaymentPending
+    !paymentProgress
+      && isPaymentPending
       && countdown?.isValid
       && !countdown.isExpired
       && countdown.remainingSeconds <= 120,
@@ -127,27 +183,40 @@ export default function CheckoutSummaryCard({ checkout, countdown }) {
       </section>
 
       <div
-        className={`payment-summary__deadline${isWarning ? " is-warning" : ""}${countdown?.isExpired ? " is-expired" : ""}${!isPaymentPending ? " is-inactive" : ""}${isPaymentPending && !countdown?.isValid ? " is-invalid" : ""}`}
-        aria-live={countdown?.isExpired ? "polite" : "off"}
+        className={`payment-summary__deadline${paymentProgress ? ` ${paymentProgress.className}` : ""}${isWarning ? " is-warning" : ""}${!paymentProgress && countdown?.isExpired ? " is-expired" : ""}${!paymentProgress && !isPaymentPending ? " is-inactive" : ""}${!paymentProgress && isPaymentPending && !countdown?.isValid ? " is-invalid" : ""}`}
+        aria-live={paymentProgress || countdown?.isExpired ? "polite" : "off"}
       >
-        <Icon>{countdown?.isExpired ? "timer_off" : "timer"}</Icon>
-        <div>
-          <span>{isPaymentPending ? "Thời gian giữ chỗ còn lại" : "Trạng thái đặt chỗ"}</span>
-          <strong className="payment-summary__countdown-value" role={isPaymentPending ? "timer" : undefined}>
-            {!isPaymentPending
-              ? checkout?.trangThai || "Không xác định"
-              : countdown?.isValid
-                ? countdown.formattedTime
-                : "Không xác định"}
-          </strong>
-          {countdown?.isExpired ? <em>Đã hết thời hạn thanh toán</em> : null}
-          {isPaymentPending && !countdown?.isValid ? (
-            <em>Không thể xác định thời hạn từ dữ liệu backend.</em>
-          ) : null}
-          {isPaymentPending && countdown?.isValid ? (
-            <small>Hoàn tất trước: {formatDateTime(checkout?.giuDenLuc)}</small>
-          ) : null}
-        </div>
+        {paymentProgress ? (
+          <>
+            <Icon>{paymentProgress.icon}</Icon>
+            <div>
+              <span>{paymentProgress.label}</span>
+              <strong className="payment-summary__payment-state">{paymentProgress.value}</strong>
+              <small>{paymentProgress.detail}</small>
+            </div>
+          </>
+        ) : (
+          <>
+            <Icon>{countdown?.isExpired ? "timer_off" : "timer"}</Icon>
+            <div>
+              <span>{isPaymentPending ? "Thời gian giữ chỗ còn lại" : "Trạng thái đặt chỗ"}</span>
+              <strong className="payment-summary__countdown-value" role={isPaymentPending ? "timer" : undefined}>
+                {!isPaymentPending
+                  ? checkout?.trangThai || "Không xác định"
+                  : countdown?.isValid
+                    ? countdown.formattedTime
+                    : "Không xác định"}
+              </strong>
+              {countdown?.isExpired ? <em>Đã hết thời hạn thanh toán</em> : null}
+              {isPaymentPending && !countdown?.isValid ? (
+                <em>Không thể xác định thời hạn từ dữ liệu backend.</em>
+              ) : null}
+              {isPaymentPending && countdown?.isValid ? (
+                <small>Hoàn tất trước: {formatDateTime(checkout?.giuDenLuc)}</small>
+              ) : null}
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
