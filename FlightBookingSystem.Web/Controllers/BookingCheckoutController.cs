@@ -13,13 +13,87 @@ public class BookingCheckoutController : ControllerBase
 {
     private readonly CheckoutCreationService _creationService;
     private readonly CheckoutSummaryService _summaryService;
+    private readonly BookingPaymentClosureService _closureService;
 
     public BookingCheckoutController(
         CheckoutCreationService creationService,
-        CheckoutSummaryService summaryService)
+        CheckoutSummaryService summaryService,
+        BookingPaymentClosureService closureService)
     {
         _creationService = creationService;
         _summaryService = summaryService;
+        _closureService = closureService;
+    }
+
+    [HttpPost("{bookingId:int}/cancel")]
+    [ProducesResponseType<BookingCancellationResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<BookingClosureErrorResponse>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<BookingClosureErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<BookingClosureErrorResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<BookingClosureErrorResponse>(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CancelBooking(
+        int bookingId,
+        CancellationToken cancellationToken)
+    {
+        var accountIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(accountIdClaim, out var accountId) || accountId <= 0)
+        {
+            return Unauthorized(ClosureError(
+                "Unauthorized",
+                "Thông tin tài khoản trong token không hợp lệ."));
+        }
+
+        if (bookingId <= 0)
+        {
+            return NotFound(ClosureError(
+                "BookingNotFound",
+                "Không tìm thấy booking."));
+        }
+
+        var now = DateTime.UtcNow;
+        var result = await _closureService.CancelByUserAsync(
+            bookingId,
+            accountId,
+            User.IsInRole("Admin"),
+            now,
+            cancellationToken);
+
+        if (result.State is BookingPaymentClosureState.Cancelled or
+            BookingPaymentClosureState.AlreadyCancelled)
+        {
+            return Ok(new BookingCancellationResponse(
+                bookingId,
+                "Cancelled",
+                result.CancelledPendingPaymentCount,
+                BookingPaymentClosureService.UserCancellationReason,
+                new DateTimeOffset(now, TimeSpan.Zero)));
+        }
+
+        return result.State switch
+        {
+            BookingPaymentClosureState.NotFound => NotFound(ClosureError(
+                "BookingNotFound",
+                "Không tìm thấy booking.")),
+            BookingPaymentClosureState.BookingAlreadyExpired => Conflict(ClosureError(
+                "BookingAlreadyExpired",
+                "Booking đã hết hạn.")),
+            BookingPaymentClosureState.BookingAlreadyConfirmed => Conflict(ClosureError(
+                "BookingAlreadyConfirmed",
+                "Booking đã được xác nhận.")),
+            BookingPaymentClosureState.PaymentAlreadySucceeded or
+                BookingPaymentClosureState.AlreadySucceeded => Conflict(ClosureError(
+                    "PaymentAlreadySucceeded",
+                    "Booking đã được thanh toán thành công.")),
+            BookingPaymentClosureState.Conflict or
+                BookingPaymentClosureState.NotApplicable => Conflict(ClosureError(
+                    "BookingCancellationConflict",
+                    "Booking không thể được hủy ở trạng thái hiện tại.")),
+            _ => StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ClosureError(
+                    "BookingCancellationFailed",
+                    "Không thể hủy booking."))
+        };
     }
 
     [HttpPost("checkout")]
@@ -99,4 +173,9 @@ public class BookingCheckoutController : ControllerBase
             _ => StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể lấy checkout summary." })
         };
     }
+
+    private static BookingClosureErrorResponse ClosureError(
+        string code,
+        string message) =>
+        new(code, message, DateTimeOffset.UtcNow);
 }

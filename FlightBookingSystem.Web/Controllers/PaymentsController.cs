@@ -31,6 +31,7 @@ public sealed class PaymentsController : ControllerBase
     private readonly CheckoutCreationService _checkoutCreationService;
     private readonly PaymentSimulationService _paymentSimulationService;
     private readonly PaymentFinalizationService _paymentFinalizationService;
+    private readonly BookingPaymentClosureService _bookingPaymentClosureService;
     private readonly ILogger<PaymentsController> _logger;
 
     public PaymentsController(
@@ -38,12 +39,14 @@ public sealed class PaymentsController : ControllerBase
         CheckoutCreationService checkoutCreationService,
         PaymentSimulationService paymentSimulationService,
         PaymentFinalizationService paymentFinalizationService,
+        BookingPaymentClosureService bookingPaymentClosureService,
         ILogger<PaymentsController> logger)
     {
         _db = db;
         _checkoutCreationService = checkoutCreationService;
         _paymentSimulationService = paymentSimulationService;
         _paymentFinalizationService = paymentFinalizationService;
+        _bookingPaymentClosureService = bookingPaymentClosureService;
         _logger = logger;
     }
 
@@ -111,6 +114,32 @@ public sealed class PaymentsController : ControllerBase
                     Error(
                         "PaymentFinalizationFailed",
                         "Không thể hoàn tất thanh toán."));
+            }
+
+            if (finalization.State == PaymentFinalizationState.GraceExpired)
+            {
+                var timeout = await _bookingPaymentClosureService
+                    .TimeoutPaymentIfGraceExpiredAsync(
+                        paymentId,
+                        now,
+                        cancellationToken);
+
+                if (timeout.State == BookingPaymentClosureState.Conflict)
+                {
+                    return Conflict(Error(
+                        "PaymentTimeoutConflict",
+                        "Dữ liệu booking không nhất quán để xử lý payment timeout."));
+                }
+
+                if (timeout.State is BookingPaymentClosureState.Failed or
+                    BookingPaymentClosureState.NotFound)
+                {
+                    return StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        Error(
+                            "PaymentTimeoutFailed",
+                            "Không thể xử lý payment timeout."));
+                }
             }
         }
 

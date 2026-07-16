@@ -22,13 +22,16 @@ public sealed class CheckoutCreationService
         new(StringComparer.Ordinal) { "Baggage", "Protection" };
 
     private readonly ApplicationDbContext _db;
+    private readonly BookingPaymentClosureService _closureService;
     private readonly ILogger<CheckoutCreationService> _logger;
 
     public CheckoutCreationService(
         ApplicationDbContext db,
+        BookingPaymentClosureService closureService,
         ILogger<CheckoutCreationService> logger)
     {
         _db = db;
+        _closureService = closureService;
         _logger = logger;
     }
 
@@ -157,6 +160,16 @@ public sealed class CheckoutCreationService
                         "Một hoặc nhiều ghế không tồn tại hoặc không thuộc chuyến bay đã chọn.");
                 }
 
+                var seatsOwnedByRequestBeforeCleanup = seats
+                    .Where(seat =>
+                        string.Equals(seat.TrangThaiGhe, "Held", StringComparison.Ordinal) &&
+                        seat.GiuBoiTaiKhoanId == accountId &&
+                        string.Equals(seat.SessionId, request.SessionId, StringComparison.Ordinal) &&
+                        seat.GiuDenLuc.HasValue &&
+                        seat.GiuDenLuc.Value > now)
+                    .Select(seat => seat.MaGheChuyenBay)
+                    .ToHashSet();
+
                 var cleanedExpiredCheckout = await CleanupExpiredCheckoutsAsync(
                     seatIds,
                     now,
@@ -167,6 +180,18 @@ public sealed class CheckoutCreationService
                     foreach (var seat in seats)
                     {
                         await _db.Entry(seat).ReloadAsync(cancellationToken);
+
+                        if (seatsOwnedByRequestBeforeCleanup.Contains(seat.MaGheChuyenBay) &&
+                            string.Equals(seat.TrangThaiGhe, "Available", StringComparison.Ordinal) &&
+                            seat.MaPhieuDatChoDangGiu is null)
+                        {
+                            seat.TrangThaiGhe = "Held";
+                            seat.GiuBoiTaiKhoanId = accountId;
+                            seat.SessionId = request.SessionId;
+                            seat.GiuDenLuc = paymentDeadline;
+                            seat.UpdatedAt = now;
+                            seat.PhienBan++;
+                        }
                     }
                 }
 
@@ -405,27 +430,11 @@ public sealed class CheckoutCreationService
         DateTime now,
         CancellationToken cancellationToken)
     {
-        var expiredBooking = await _db.PhieuDatChos
-            .Where(booking =>
-                booking.MaPhieuDatCho == bookingId &&
-                booking.TrangThai == "PaymentPending" &&
-                booking.GiuDenLuc.HasValue &&
-                booking.GiuDenLuc.Value <= now &&
-                !booking.ThanhToans.Any(payment => payment.TrangThai == "Pending"))
-            .Include(booking => booking.Ves.Where(ticket =>
-                ticket.TrangThaiVe == "PaymentPending"))
-            .Include(booking => booking.GheDangGius)
-            .AsSplitQuery()
-            .SingleOrDefaultAsync(cancellationToken);
-
-        if (expiredBooking is null)
-        {
-            return false;
-        }
-
-        ExpireBooking(expiredBooking, now);
-        await _db.SaveChangesAsync(cancellationToken);
-        return true;
+        var result = await _closureService.CloseBookingIfExpiredAsync(
+            bookingId,
+            now,
+            cancellationToken);
+        return result.HasChanges;
     }
 
     private async Task<bool> CleanupExpiredCheckoutsAsync(
@@ -433,82 +442,16 @@ public sealed class CheckoutCreationService
         DateTime now,
         CancellationToken cancellationToken)
     {
-        var expiredBookings = await _db.PhieuDatChos
-            .Where(booking =>
-                booking.TrangThai == "PaymentPending" &&
-                booking.GiuDenLuc.HasValue &&
-                booking.GiuDenLuc.Value <= now &&
-                !booking.ThanhToans.Any(payment => payment.TrangThai == "Pending") &&
-                booking.Ves.Any(ticket =>
-                    ticket.TrangThaiVe == "PaymentPending" &&
-                    selectedSeatIds.Contains(ticket.MaGheChuyenBay)))
-            .Include(booking => booking.Ves.Where(ticket =>
-                ticket.TrangThaiVe == "PaymentPending"))
-            .Include(booking => booking.GheDangGius)
-            .AsSplitQuery()
-            .ToListAsync(cancellationToken);
-
-        if (expiredBookings.Count == 0)
+        var result = await _closureService.CloseExpiredBookingsForSeatsAsync(
+            selectedSeatIds,
+            now,
+            cancellationToken);
+        if (result.Failed)
         {
-            return false;
+            throw new InvalidOperationException(result.Message);
         }
 
-        foreach (var booking in expiredBookings)
-        {
-            ExpireBooking(booking, now);
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
-        return true;
-    }
-
-    private static void ExpireBooking(PhieuDatCho booking, DateTime now)
-    {
-        booking.TrangThai = "Expired";
-        booking.NgayCapNhat = now;
-
-        foreach (var ticket in booking.Ves)
-        {
-            ticket.TrangThaiVe = "Canceled";
-        }
-
-        foreach (var seat in booking.GheDangGius)
-        {
-            if (seat.MaPhieuDatChoDangGiu != booking.MaPhieuDatCho)
-            {
-                continue;
-            }
-
-            if (HasActiveSessionHold(seat, now))
-            {
-                seat.MaPhieuDatChoDangGiu = null;
-                seat.PhieuDatChoDangGiu = null;
-                seat.UpdatedAt = now;
-                seat.PhienBan++;
-                continue;
-            }
-
-            ResetSeat(seat, now);
-        }
-    }
-
-    private static bool HasActiveSessionHold(GheChuyenBay seat, DateTime now) =>
-        string.Equals(seat.TrangThaiGhe, "Held", StringComparison.Ordinal) &&
-        seat.GiuBoiTaiKhoanId.HasValue &&
-        !string.IsNullOrWhiteSpace(seat.SessionId) &&
-        seat.GiuDenLuc.HasValue &&
-        seat.GiuDenLuc.Value > now;
-
-    private static void ResetSeat(GheChuyenBay seat, DateTime now)
-    {
-        seat.TrangThaiGhe = "Available";
-        seat.GiuBoiTaiKhoanId = null;
-        seat.MaPhieuDatChoDangGiu = null;
-        seat.PhieuDatChoDangGiu = null;
-        seat.SessionId = null;
-        seat.GiuDenLuc = null;
-        seat.UpdatedAt = now;
-        seat.PhienBan++;
+        return result.HasChanges;
     }
 
     private void LogDatabaseConflict(

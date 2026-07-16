@@ -83,6 +83,7 @@ builder.Services.AddScoped<CheckoutCreationService>();
 builder.Services.AddScoped<CheckoutSummaryService>();
 builder.Services.AddScoped<PaymentSimulationService>();
 builder.Services.AddScoped<PaymentFinalizationService>();
+builder.Services.AddScoped<BookingPaymentClosureService>();
 
 // Authentication JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"]
