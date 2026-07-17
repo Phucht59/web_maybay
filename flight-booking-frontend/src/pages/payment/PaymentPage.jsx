@@ -18,6 +18,13 @@ const PAYMENT_STATES = {
   REJECTED: "rejected",
 };
 
+const CANCELLATION_STATES = {
+  IDLE: "idle",
+  SUBMITTING: "submitting",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+};
+
 const PAYMENT_METHODS = new Set(["Card", "OnlineBanking", "EWallet", "QrBanking"]);
 const CLEAR_ATTEMPT_CODES = new Set([
   "BookingExpired",
@@ -132,6 +139,41 @@ function classifyPaymentError(requestError) {
   };
 }
 
+function classifyCancellationError(requestError) {
+  const status = requestError.response?.status;
+  const responseData = requestError.response?.data;
+  const code = responseData?.code || "";
+  const backendMessage = responseData?.message;
+
+  if (!requestError.response) {
+    return "Không thể xác nhận máy chủ đã hủy booking. Vui lòng kiểm tra kết nối và thử lại.";
+  }
+
+  if (backendMessage) return backendMessage;
+
+  const conflictMessages = {
+    BookingAlreadyExpired: "Booking đã hết hạn và không thể chuyển sang trạng thái hủy.",
+    BookingAlreadyConfirmed: "Booking đã được xác nhận và không thể hủy trong luồng thanh toán này.",
+    PaymentAlreadySucceeded: "Thanh toán đã thành công nên booking không thể hủy tại đây.",
+    BookingCancellationConflict: "Dữ liệu booking đang xung đột và chưa thể hủy an toàn.",
+  };
+
+  if (status === 401 || code === "Unauthorized") {
+    return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+  }
+  if (status === 404 || code === "BookingNotFound") {
+    return "Không tìm thấy booking hoặc bạn không có quyền hủy booking này.";
+  }
+  if (status === 409) {
+    return conflictMessages[code] || "Dữ liệu booking đang xung đột và chưa thể hủy an toàn.";
+  }
+  if (status >= 500 || code === "BookingCancellationFailed") {
+    return "Máy chủ chưa thể hủy booking. Vui lòng thử lại.";
+  }
+
+  return "Không thể hủy booking. Vui lòng thử lại.";
+}
+
 function getConfirmButtonLabel(paymentState, amount) {
   if (paymentState === PAYMENT_STATES.SUBMITTING) return "Đang gửi yêu cầu...";
   if (paymentState === PAYMENT_STATES.UNCERTAIN_ERROR) return "Gửi lại yêu cầu";
@@ -156,17 +198,26 @@ export default function PaymentPage() {
   const [paymentResponse, setPaymentResponse] = useState(null);
   const [paymentFeedback, setPaymentFeedback] = useState(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancellationState, setCancellationState] = useState(CANCELLATION_STATES.IDLE);
+  const [cancellationFeedback, setCancellationFeedback] = useState("");
+  const [cancellationResponse, setCancellationResponse] = useState(null);
 
   const paymentAttemptRef = useRef(initialAttempt);
   const submitGuardRef = useRef(false);
+  const cancelGuardRef = useRef(false);
 
   const isPaymentPending = checkout?.trangThai === "PaymentPending";
+  const cancellationLocksPayment = cancellationState === CANCELLATION_STATES.SUBMITTING
+    || cancellationState === CANCELLATION_STATES.SUCCEEDED;
   const countdown = usePaymentCountdown({
     deadline: checkout?.giuDenLuc,
     serverTime: checkout?.serverTime,
     enabled: isPaymentPending && paymentState === PAYMENT_STATES.IDLE,
   });
-  const basePaymentControlsDisabled = !isPaymentPending || !countdown.isValid || countdown.isExpired;
+  const basePaymentControlsDisabled = !isPaymentPending
+    || !countdown.isValid
+    || countdown.isExpired
+    || cancellationLocksPayment;
   const methodControlsDisabled = basePaymentControlsDisabled
     || paymentState !== PAYMENT_STATES.IDLE
     || Boolean(paymentAttempt);
@@ -176,13 +227,19 @@ export default function PaymentPage() {
     && PAYMENT_METHODS.has(paymentMethod)
     && termsAccepted;
   const canRetryPayment = paymentState === PAYMENT_STATES.UNCERTAIN_ERROR
+    && !cancellationLocksPayment
     && Boolean(paymentAttemptRef.current);
   const confirmDisabled = !canStartPayment && !canRetryPayment;
+  const cancelDisabled = !isPaymentPending
+    || cancellationState === CANCELLATION_STATES.SUBMITTING
+    || cancellationState === CANCELLATION_STATES.SUCCEEDED
+    || paymentState === PAYMENT_STATES.SUBMITTING;
 
   useEffect(() => {
     const restoredAttempt = readPaymentAttempt(normalizedBookingId);
     paymentAttemptRef.current = restoredAttempt;
     submitGuardRef.current = false;
+    cancelGuardRef.current = false;
     setPaymentAttempt(restoredAttempt);
     setPaymentMethod(restoredAttempt?.method || "Card");
     setTermsAccepted(false);
@@ -190,6 +247,9 @@ export default function PaymentPage() {
     setPaymentResponse(null);
     setPaymentFeedback(null);
     setCancelModalOpen(false);
+    setCancellationState(CANCELLATION_STATES.IDLE);
+    setCancellationFeedback("");
+    setCancellationResponse(null);
   }, [normalizedBookingId]);
 
   useEffect(() => {
@@ -229,12 +289,59 @@ export default function PaymentPage() {
     if (canRetryCheckout) setLoadAttempt((attempt) => attempt + 1);
   };
 
-  const closeCancelModal = useCallback(() => setCancelModalOpen(false), []);
+  const closeCancelModal = useCallback(() => {
+    if (cancelGuardRef.current) return;
+    setCancelModalOpen(false);
+  }, []);
+
+  const openCancelModal = () => {
+    if (cancelDisabled) return;
+    setCancellationFeedback("");
+    setCancelModalOpen(true);
+  };
 
   const clearStoredAttempt = () => {
     window.sessionStorage.removeItem(getAttemptStorageKey(normalizedBookingId));
     paymentAttemptRef.current = null;
     setPaymentAttempt(null);
+  };
+
+  const confirmCancellation = async () => {
+    if (cancelGuardRef.current) return;
+    if (!Number.isInteger(normalizedBookingId) || normalizedBookingId <= 0 || !isPaymentPending) {
+      return;
+    }
+    if (paymentState === PAYMENT_STATES.SUBMITTING) return;
+
+    cancelGuardRef.current = true;
+    setCancellationState(CANCELLATION_STATES.SUBMITTING);
+    setCancellationFeedback("");
+
+    try {
+      const response = await bookingService.cancelBooking(normalizedBookingId);
+
+      window.sessionStorage.removeItem(getAttemptStorageKey(normalizedBookingId));
+      paymentAttemptRef.current = null;
+      submitGuardRef.current = false;
+      setPaymentAttempt(null);
+      setPaymentResponse(null);
+      setPaymentFeedback(null);
+      setPaymentState(PAYMENT_STATES.IDLE);
+      setTermsAccepted(false);
+      setCheckout((currentCheckout) => ({
+        ...currentCheckout,
+        trangThai: response.bookingStatus,
+      }));
+      setCancellationResponse(response);
+      setCancellationFeedback("Đã hủy booking và giải phóng ghế.");
+      setCancellationState(CANCELLATION_STATES.SUCCEEDED);
+      setCancelModalOpen(false);
+    } catch (requestError) {
+      setCancellationResponse(null);
+      setCancellationFeedback(classifyCancellationError(requestError));
+      setCancellationState(CANCELLATION_STATES.FAILED);
+      cancelGuardRef.current = false;
+    }
   };
 
   const submitPayment = async () => {
@@ -332,7 +439,6 @@ export default function PaymentPage() {
 
   const amount = checkout.pricing?.tongThanhToan;
   const buttonLabel = getConfirmButtonLabel(paymentState, amount);
-  const actionLocked = paymentState !== PAYMENT_STATES.IDLE;
 
   return (
     <main className="payment-page">
@@ -377,7 +483,21 @@ export default function PaymentPage() {
               paymentErrorCode={paymentFeedback?.code}
             />
             <section className="payment-card payment-page__action" aria-live="polite">
-              {paymentState === PAYMENT_STATES.ACCEPTED && paymentResponse ? (
+              {cancellationState === CANCELLATION_STATES.SUCCEEDED && cancellationResponse ? (
+                <div className="payment-request-status payment-cancellation-status is-cancelled">
+                  <span className="material-symbols-outlined" aria-hidden="true">event_busy</span>
+                  <h2>Đã hủy đặt chỗ</h2>
+                  <p>{cancellationFeedback}</p>
+                  <dl>
+                    <div><dt>Booking ID</dt><dd>{cancellationResponse.bookingId}</dd></div>
+                    <div><dt>Trạng thái</dt><dd>{cancellationResponse.bookingStatus}</dd></div>
+                  </dl>
+                </div>
+              ) : null}
+
+              {cancellationState !== CANCELLATION_STATES.SUCCEEDED
+                && paymentState === PAYMENT_STATES.ACCEPTED
+                && paymentResponse ? (
                 <div className="payment-request-status is-accepted">
                   <span className="material-symbols-outlined" aria-hidden="true">hourglass_top</span>
                   <h2>Yêu cầu thanh toán đã được tiếp nhận.</h2>
@@ -407,27 +527,33 @@ export default function PaymentPage() {
                 </div>
               ) : null}
 
-              <div className="payment-page__action-buttons">
-                <button
-                  type="button"
-                  className="payment-page__confirm-button"
-                  disabled={confirmDisabled}
-                  onClick={submitPayment}
-                >
-                  {buttonLabel}
-                </button>
-                <button
-                  type="button"
-                  className="payment-page__cancel-button"
-                  disabled={actionLocked}
-                  onClick={() => setCancelModalOpen(true)}
-                >
-                  Hủy thanh toán
-                </button>
-              </div>
+              {cancellationState !== CANCELLATION_STATES.SUCCEEDED ? (
+                <div className="payment-page__action-buttons">
+                  <button
+                    type="button"
+                    className="payment-page__confirm-button"
+                    disabled={confirmDisabled}
+                    onClick={submitPayment}
+                  >
+                    {buttonLabel}
+                  </button>
+                  <button
+                    type="button"
+                    className="payment-page__cancel-button"
+                    disabled={cancelDisabled}
+                    onClick={openCancelModal}
+                  >
+                    Hủy thanh toán
+                  </button>
+                </div>
+              ) : null}
 
               <p className="payment-page__action-note">
-                {paymentState === PAYMENT_STATES.SUBMITTING
+                {cancellationState === CANCELLATION_STATES.SUCCEEDED
+                  ? "Đã hủy booking và giải phóng ghế."
+                  : cancellationState === CANCELLATION_STATES.SUBMITTING
+                    ? "Đang gửi yêu cầu hủy booking đến máy chủ."
+                    : paymentState === PAYMENT_STATES.SUBMITTING
                   ? "Đang gửi yêu cầu. Phương thức, điều khoản và các thao tác khác đã được khóa."
                   : paymentState === PAYMENT_STATES.ACCEPTED
                     ? "Không có polling trong bước này. Trạng thái cuối sẽ được xử lý ở task sau."
@@ -444,7 +570,13 @@ export default function PaymentPage() {
         </div>
       </div>
 
-      <CancelPaymentModal open={cancelModalOpen} onClose={closeCancelModal} />
+      <CancelPaymentModal
+        open={cancelModalOpen}
+        onClose={closeCancelModal}
+        onConfirm={confirmCancellation}
+        submitting={cancellationState === CANCELLATION_STATES.SUBMITTING}
+        error={cancellationState === CANCELLATION_STATES.FAILED ? cancellationFeedback : ""}
+      />
     </main>
   );
 }

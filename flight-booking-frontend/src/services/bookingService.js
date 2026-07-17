@@ -47,6 +47,16 @@ export const bookingService = {
     return response.data;
   },
 
+  cancelBooking: async (bookingId) => {
+    const normalizedBookingId = Number(bookingId);
+    if (!Number.isInteger(normalizedBookingId) || normalizedBookingId <= 0) {
+      throw new TypeError("Mã booking không hợp lệ.");
+    }
+
+    const response = await axiosClient.post(`/booking/${normalizedBookingId}/cancel`);
+    return response.data;
+  },
+
   cancelPaymentHold: async (flightId, sessionId) => {
     await axiosClient.delete(`/booking/flights/${flightId}/payment-hold`, {
       params: { sessionId },

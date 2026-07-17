@@ -1,6 +1,12 @@
 import { useEffect, useRef } from "react";
 
-export default function CancelPaymentModal({ open, onClose }) {
+export default function CancelPaymentModal({
+  open,
+  onClose,
+  onConfirm,
+  submitting,
+  error,
+}) {
   const closeButtonRef = useRef(null);
 
   useEffect(() => {
@@ -8,12 +14,12 @@ export default function CancelPaymentModal({ open, onClose }) {
 
     closeButtonRef.current?.focus();
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !submitting) onClose();
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose, submitting]);
 
   if (!open) return null;
 
@@ -22,7 +28,7 @@ export default function CancelPaymentModal({ open, onClose }) {
       className="payment-cancel-modal__backdrop"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget && !submitting) onClose();
       }}
     >
       <section
@@ -37,6 +43,7 @@ export default function CancelPaymentModal({ open, onClose }) {
           type="button"
           className="payment-cancel-modal__close"
           onClick={onClose}
+          disabled={submitting}
           aria-label="Đóng hộp xác nhận hủy"
         >
           <span className="material-symbols-outlined" aria-hidden="true">close</span>
@@ -47,17 +54,33 @@ export default function CancelPaymentModal({ open, onClose }) {
         </span>
         <h2 id="payment-cancel-modal-title">Xác nhận hủy đặt chỗ</h2>
         <p id="payment-cancel-modal-description">
-          Hủy sẽ kết thúc toàn bộ booking và giải phóng ghế sau khi chức năng hủy phía máy chủ được triển khai.
-          Đây là hành động ảnh hưởng đến tất cả hành khách trong booking.
+          Thao tác này sẽ hủy toàn bộ booking và áp dụng cho tất cả hành khách trong booking.
+          Ghế chỉ được giải phóng sau khi máy chủ xác nhận hủy thành công.
         </p>
 
         <div className="payment-cancel-modal__notice" role="note">
-          Chức năng xác nhận hủy sẽ được kết nối ở bước xử lý hủy.
+          Booking chưa được xem là đã hủy cho đến khi máy chủ trả về kết quả thành công.
         </div>
 
+        {error ? <div className="payment-cancel-modal__error" role="alert">{error}</div> : null}
+
         <div className="payment-cancel-modal__actions">
-          <button type="button" className="is-secondary" onClick={onClose}>Tiếp tục thanh toán</button>
-          <button type="button" className="is-danger" disabled>Xác nhận hủy</button>
+          <button
+            type="button"
+            className="is-secondary"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Tiếp tục thanh toán
+          </button>
+          <button
+            type="button"
+            className="is-danger"
+            onClick={onConfirm}
+            disabled={submitting}
+          >
+            {submitting ? "Đang hủy..." : "Xác nhận hủy"}
+          </button>
         </div>
       </section>
     </div>
