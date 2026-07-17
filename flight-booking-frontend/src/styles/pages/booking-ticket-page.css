@@ -1,0 +1,848 @@
+.booking-ticket__layout {
+  width: min(var(--payment-status-content-width), 100%);
+  margin: 0 auto;
+}
+
+.booking-ticket__document {
+  display: grid;
+  gap: 20px;
+}
+
+.booking-ticket__hero,
+.booking-ticket__panel,
+.electronic-ticket,
+.booking-ticket__state {
+  border: 1px solid rgba(191, 200, 205, 0.62);
+  border-radius: var(--payment-status-card-radius);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: var(--payment-status-card-shadow);
+}
+
+.booking-ticket__hero {
+  padding: 38px 32px 32px;
+  border-top: 4px solid #5f8d4e;
+  background: linear-gradient(145deg, #eff8ec, #fff);
+  text-align: center;
+}
+
+.booking-ticket__hero-icon,
+.booking-ticket__spinner,
+.booking-ticket__state-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 38px;
+}
+
+.booking-ticket__hero-icon {
+  background: #eaf5e6;
+  color: #3f692e;
+}
+
+.booking-ticket__hero > p,
+.booking-ticket__section-heading p,
+.electronic-ticket__header p {
+  margin: 16px 0 5px;
+  color: var(--payment-gold);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.booking-ticket__hero h2 {
+  margin: 0;
+  color: var(--payment-primary-dark);
+  font-family: "Noto Serif", serif;
+  font-size: clamp(28px, 4vw, 38px);
+}
+
+.booking-ticket__hero > span:not(.booking-ticket__hero-icon) {
+  display: block;
+  margin-top: 9px;
+  color: var(--payment-muted);
+  line-height: 1.6;
+}
+
+.booking-ticket__reference {
+  width: min(520px, 100%);
+  margin: 24px auto 0;
+  padding: 18px 20px;
+  display: grid;
+  justify-items: center;
+  border: 1px solid #c9dfe1;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.booking-ticket__reference small,
+.booking-ticket__reference span {
+  color: var(--payment-muted);
+  font-size: 11px;
+}
+
+.booking-ticket__reference strong {
+  max-width: 100%;
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+  color: var(--payment-primary-dark);
+  font-family: "Noto Serif", serif;
+  font-size: clamp(24px, 5vw, 34px);
+  letter-spacing: 0.08em;
+}
+
+.booking-ticket__panel {
+  padding: 24px 26px;
+}
+
+.booking-ticket__section-heading {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.booking-ticket__section-heading p,
+.electronic-ticket__header p {
+  margin-top: 0;
+}
+
+.booking-ticket__section-heading h2 {
+  margin: 0;
+  color: var(--payment-primary-dark);
+  font-family: "Noto Serif", serif;
+  font-size: 22px;
+}
+
+.booking-ticket__section-heading > img {
+  width: auto;
+  max-width: 120px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.booking-ticket__section-heading > span {
+  color: var(--payment-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.booking-ticket__flight-meta {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px 18px;
+  flex-wrap: wrap;
+  border-radius: 10px;
+  background: #f4f9f9;
+  color: var(--payment-muted);
+  font-size: 12px;
+}
+
+.booking-ticket__flight-meta strong {
+  color: var(--payment-primary-dark);
+  font-size: 15px;
+}
+
+.booking-ticket__flight-status {
+  margin-left: auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eaf5e6;
+  color: #3f692e;
+  font-weight: 900;
+}
+
+.booking-ticket__route {
+  padding: 28px 12px;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(120px, 1fr) minmax(150px, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.booking-ticket__airport {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.booking-ticket__airport.is-arrival {
+  justify-items: end;
+  text-align: right;
+}
+
+.booking-ticket__airport > span {
+  color: var(--payment-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.booking-ticket__airport strong {
+  color: var(--payment-primary-dark);
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1;
+}
+
+.booking-ticket__airport b {
+  overflow-wrap: anywhere;
+  color: #314b51;
+  font-size: 13px;
+}
+
+.booking-ticket__airport small,
+.booking-ticket__airport time {
+  color: var(--payment-muted);
+  font-size: 11px;
+}
+
+.booking-ticket__airport time {
+  margin-top: 5px;
+  color: #2d4a51;
+  font-weight: 800;
+}
+
+.booking-ticket__route-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr);
+  align-items: center;
+  color: var(--payment-primary);
+}
+
+.booking-ticket__route-line i {
+  height: 1px;
+  background: #b8ced1;
+}
+
+.booking-ticket__route-line .material-symbols-outlined {
+  font-size: 25px;
+  transform: rotate(90deg);
+}
+
+.booking-ticket__compact-details {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.booking-ticket__compact-details.is-contact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.booking-ticket__detail {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--payment-line);
+  border-radius: 10px;
+  background: #fbfdfd;
+}
+
+.booking-ticket__detail dt {
+  margin-bottom: 4px;
+  color: var(--payment-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.booking-ticket__detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #2d4a51;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.booking-ticket__tickets {
+  padding-top: 4px;
+}
+
+.booking-ticket__tickets > .booking-ticket__section-heading {
+  margin-bottom: 14px;
+  padding-inline: 4px;
+}
+
+.booking-ticket__ticket-list {
+  display: grid;
+  gap: 20px;
+}
+
+.electronic-ticket {
+  overflow: hidden;
+  border-top: 4px solid var(--payment-primary);
+}
+
+.electronic-ticket__header {
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--payment-line);
+  background: linear-gradient(145deg, #f2f9f9, #fff);
+}
+
+.electronic-ticket__header h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--payment-primary-dark);
+  font-family: "Noto Serif", serif;
+  font-size: 23px;
+}
+
+.electronic-ticket__status {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  background: #eaf5e6;
+  color: #3f692e;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.electronic-ticket__status .material-symbols-outlined {
+  font-size: 17px;
+}
+
+.electronic-ticket__number {
+  padding: 22px 24px;
+  display: grid;
+  justify-items: center;
+  background: #fffaf0;
+  text-align: center;
+}
+
+.electronic-ticket__number > span,
+.electronic-ticket__number small {
+  color: var(--payment-muted);
+  font-size: 11px;
+}
+
+.electronic-ticket__number strong {
+  max-width: 100%;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+  color: #765018;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: clamp(20px, 4vw, 29px);
+  letter-spacing: 0.04em;
+}
+
+.electronic-ticket__journey {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 90px minmax(160px, 1fr) 90px;
+  gap: 16px;
+  align-items: center;
+  border-top: 1px dashed #d6c59f;
+  border-bottom: 1px solid var(--payment-line);
+}
+
+.electronic-ticket__airport {
+  display: grid;
+  gap: 3px;
+}
+
+.electronic-ticket__airport.is-arrival {
+  justify-items: end;
+  text-align: right;
+}
+
+.electronic-ticket__airport strong {
+  color: var(--payment-primary-dark);
+  font-size: 25px;
+}
+
+.electronic-ticket__airport span,
+.electronic-ticket__route span,
+.electronic-ticket__route small {
+  color: var(--payment-muted);
+  font-size: 11px;
+}
+
+.electronic-ticket__route {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.electronic-ticket__route > div {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+  align-items: center;
+  color: var(--payment-primary);
+}
+
+.electronic-ticket__route i {
+  height: 1px;
+  background: #b8ced1;
+}
+
+.electronic-ticket__route .material-symbols-outlined {
+  font-size: 22px;
+  transform: rotate(90deg);
+}
+
+.electronic-ticket__columns {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.electronic-ticket__section {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--payment-line);
+  border-radius: 12px;
+  background: #fbfdfd;
+}
+
+.electronic-ticket__section.is-services {
+  margin: 0 24px 24px;
+}
+
+.electronic-ticket__section h4 {
+  margin: 0 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--payment-primary-dark);
+  font-size: 14px;
+}
+
+.electronic-ticket__section h4 .material-symbols-outlined {
+  color: var(--payment-primary);
+  font-size: 19px;
+}
+
+.electronic-ticket__details {
+  margin: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.electronic-ticket__detail {
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.electronic-ticket__detail dt {
+  color: var(--payment-muted);
+}
+
+.electronic-ticket__detail dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #2d4a51;
+  font-weight: 800;
+  text-align: right;
+}
+
+.electronic-ticket__services {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  list-style: none;
+}
+
+.electronic-ticket__services > li {
+  padding: 12px 13px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+  gap: 18px;
+  align-items: center;
+  border-radius: 9px;
+  background: #f3f8f8;
+}
+
+.electronic-ticket__services strong,
+.electronic-ticket__services span {
+  display: block;
+}
+
+.electronic-ticket__services strong {
+  color: #2d4a51;
+  font-size: 12px;
+}
+
+.electronic-ticket__services span {
+  margin-top: 3px;
+  color: var(--payment-muted);
+  font-size: 10px;
+}
+
+.electronic-ticket__services dl {
+  margin: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.electronic-ticket__services dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 10px;
+}
+
+.electronic-ticket__services dt {
+  color: var(--payment-muted);
+}
+
+.electronic-ticket__services dd {
+  margin: 0;
+  color: #2d4a51;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.electronic-ticket__empty-service {
+  margin: 0;
+  color: var(--payment-muted);
+  font-size: 12px;
+}
+
+.electronic-ticket__total {
+  padding: 18px 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  border-top: 1px solid var(--payment-line);
+  background: #f7fbfb;
+}
+
+.electronic-ticket__total > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.electronic-ticket__total span {
+  color: var(--payment-muted);
+  font-size: 10px;
+}
+
+.electronic-ticket__total strong {
+  overflow-wrap: anywhere;
+  color: #2d4a51;
+  font-size: 14px;
+}
+
+.electronic-ticket__total .is-grand-total {
+  justify-items: end;
+  text-align: right;
+}
+
+.electronic-ticket__total .is-grand-total strong {
+  color: var(--payment-primary-dark);
+  font-size: 18px;
+}
+
+.booking-ticket__pricing {
+  width: min(560px, 100%);
+  margin: 0 0 0 auto;
+  display: grid;
+  gap: 11px;
+}
+
+.booking-ticket__pricing > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.booking-ticket__pricing dt {
+  color: var(--payment-muted);
+  font-size: 12px;
+}
+
+.booking-ticket__pricing dd {
+  margin: 0;
+  color: #2d4a51;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.booking-ticket__pricing .is-total {
+  margin-top: 4px;
+  padding-top: 14px;
+  align-items: flex-end;
+  border-top: 1px solid var(--payment-line);
+}
+
+.booking-ticket__pricing .is-total dt {
+  color: var(--payment-text);
+  font-weight: 900;
+}
+
+.booking-ticket__pricing .is-total dd {
+  color: var(--payment-primary-dark);
+  font-size: 24px;
+}
+
+.booking-ticket__note {
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 12px;
+  background: #eef8f8;
+  color: #40565b;
+}
+
+.booking-ticket__note > .material-symbols-outlined {
+  color: var(--payment-primary);
+}
+
+.booking-ticket__note strong {
+  color: var(--payment-primary-dark);
+  font-size: 13px;
+}
+
+.booking-ticket__note p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.booking-ticket__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.booking-ticket__actions a,
+.booking-ticket__actions button,
+.booking-ticket__state > button {
+  min-width: 170px;
+  min-height: 46px;
+  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.booking-ticket__actions .is-primary,
+.booking-ticket__state .is-primary {
+  background: var(--payment-primary);
+  color: #fff;
+}
+
+.booking-ticket__actions .is-secondary {
+  border-color: var(--payment-primary);
+  background: #fff;
+  color: var(--payment-primary-dark);
+}
+
+.booking-ticket__actions button:disabled {
+  background: #9babad;
+  cursor: not-allowed;
+}
+
+.booking-ticket__state {
+  min-height: 390px;
+  padding: 52px 28px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.booking-ticket__spinner {
+  background: #e8f4f4;
+  color: var(--payment-primary);
+  animation: booking-ticket-spin 1.1s linear infinite;
+}
+
+.booking-ticket__state-icon {
+  background: #fff0ed;
+  color: var(--payment-danger);
+}
+
+.booking-ticket__state h2 {
+  margin: 16px 0 6px;
+  color: var(--payment-primary-dark);
+  font-family: "Noto Serif", serif;
+  font-size: clamp(25px, 4vw, 34px);
+}
+
+.booking-ticket__state p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--payment-muted);
+  line-height: 1.6;
+}
+
+.booking-ticket__state small {
+  margin-top: 7px;
+  color: var(--payment-muted);
+}
+
+.booking-ticket__state .booking-ticket__actions {
+  margin-top: 22px;
+}
+
+.booking-ticket__state > button {
+  margin-top: 22px;
+}
+
+@keyframes booking-ticket-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 720px) {
+  .booking-ticket__hero {
+    padding: 30px 18px 24px;
+  }
+
+  .booking-ticket__panel {
+    padding: 20px 18px;
+  }
+
+  .booking-ticket__section-heading {
+    align-items: flex-start;
+  }
+
+  .booking-ticket__section-heading > img {
+    max-width: 92px;
+    height: 36px;
+  }
+
+  .booking-ticket__flight-status {
+    margin-left: 0;
+  }
+
+  .booking-ticket__route {
+    grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr);
+    gap: 8px;
+    padding-inline: 0;
+  }
+
+  .booking-ticket__compact-details,
+  .booking-ticket__compact-details.is-contact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .electronic-ticket__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .electronic-ticket__journey {
+    padding: 20px 18px;
+    grid-template-columns: 62px minmax(100px, 1fr) 62px;
+    gap: 8px;
+  }
+
+  .electronic-ticket__columns {
+    padding: 18px;
+    grid-template-columns: 1fr;
+  }
+
+  .electronic-ticket__section.is-services {
+    margin: 0 18px 18px;
+  }
+
+  .electronic-ticket__services > li {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .electronic-ticket__services dd {
+    white-space: normal;
+  }
+
+  .electronic-ticket__total {
+    padding: 16px 18px;
+    grid-template-columns: 1fr;
+  }
+
+  .electronic-ticket__total .is-grand-total {
+    padding-top: 10px;
+    justify-items: start;
+    border-top: 1px solid var(--payment-line);
+    text-align: left;
+  }
+
+  .booking-ticket__actions {
+    flex-direction: column;
+  }
+
+  .booking-ticket__actions a,
+  .booking-ticket__actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .booking-ticket__section-heading {
+    flex-direction: column;
+  }
+
+  .booking-ticket__route {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-ticket__route-line {
+    width: 82%;
+    margin: 8px auto;
+  }
+
+  .booking-ticket__airport.is-arrival {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .booking-ticket__compact-details,
+  .booking-ticket__compact-details.is-contact {
+    grid-template-columns: 1fr;
+  }
+
+  .electronic-ticket__number {
+    padding-inline: 16px;
+  }
+
+  .electronic-ticket__journey {
+    grid-template-columns: 52px minmax(90px, 1fr) 52px;
+  }
+
+  .electronic-ticket__detail {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .electronic-ticket__detail dd {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-ticket__spinner {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import FlightSelectionPage from "../pages/flight-selection/FlightSelectionPage";
 import BookingSeatPage from "../pages/booking/BookingSeatPage";
+import BookingTicketPage from "../pages/booking/BookingTicketPage";
 import PaymentPage from "../pages/payment/PaymentPage";
 import PaymentProcessingPage from "../pages/payment/PaymentProcessingPage";
 import PaymentResultPage from "../pages/payment/PaymentResultPage";
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/booking/:id" element={<BookingSeatPage />} />
+          <Route path="/booking/:bookingId/tickets" element={<BookingTicketPage />} />
           <Route path="/payment/:bookingId" element={<PaymentPage />} />
           <Route
             path="/payment/:bookingId/processing/:paymentId"

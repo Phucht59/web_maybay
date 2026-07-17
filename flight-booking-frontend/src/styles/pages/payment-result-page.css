@@ -260,6 +260,7 @@
   display: flex;
   justify-content: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .payment-result__action {
@@ -296,6 +297,16 @@
 
 .payment-result__action.is-secondary:hover {
   background: #edf8f8;
+}
+
+.payment-result__action.is-tertiary {
+  border-color: var(--payment-line);
+  background: #f5f8f8;
+  color: #40565b;
+}
+
+.payment-result__action.is-tertiary:hover {
+  background: #eaf0f0;
 }
 
 .payment-result__action:disabled {

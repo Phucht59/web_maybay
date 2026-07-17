@@ -46,15 +46,18 @@ function getFriendlyFailureReason(failureReason) {
   return "Giao dịch không thể hoàn tất theo kết quả được máy chủ ghi nhận.";
 }
 
-function ResultActions({ primaryAction, secondaryAction }) {
+function ResultActions({ actions }) {
   return (
     <div className="payment-result__actions">
-      <Link className="payment-result__action is-primary" to={primaryAction.to}>
-        {primaryAction.label}
-      </Link>
-      <Link className="payment-result__action is-secondary" to={secondaryAction.to}>
-        {secondaryAction.label}
-      </Link>
+      {actions.map((action, index) => (
+        <Link
+          className={`payment-result__action ${index === 0 ? "is-primary" : index === 1 ? "is-secondary" : "is-tertiary"}`}
+          key={`${action.to}-${action.label}`}
+          to={action.to}
+        >
+          {action.label}
+        </Link>
+      ))}
     </div>
   );
 }
@@ -190,9 +193,12 @@ export default function PaymentResultPage({ mode }) {
         title: "Thanh toán thành công",
         description: "Đặt chỗ của bạn đã được xác nhận.",
         noteTitle: "Booking đã Confirmed và vé đã được phát hành.",
-        noteBody: "Chức năng xem vé và chi tiết booking sẽ được bổ sung ở bước tiếp theo.",
-        primaryAction: { label: "Về trang chủ", to: "/" },
-        secondaryAction: { label: "Tìm chuyến khác", to: "/search" },
+        noteBody: "Vé điện tử đã được phát hành cho từng hành khách.",
+        actions: [
+          { label: "Xem vé", to: `/booking/${checkout.maPhieuDatCho}/tickets` },
+          { label: "Về trang chủ", to: "/" },
+          { label: "Tìm chuyến khác", to: "/search" },
+        ],
       },
       cancelled: {
         icon: "event_busy",
@@ -201,8 +207,10 @@ export default function PaymentResultPage({ mode }) {
         description: "Yêu cầu hủy đã được máy chủ xác nhận.",
         noteTitle: "Booking và vé chờ đã được hủy.",
         noteBody: "Ghế đã được giải phóng theo kết quả backend.",
-        primaryAction: { label: "Tìm chuyến bay", to: "/search" },
-        secondaryAction: { label: "Về trang chủ", to: "/" },
+        actions: [
+          { label: "Tìm chuyến bay", to: "/search" },
+          { label: "Về trang chủ", to: "/" },
+        ],
       },
       timeout: {
         icon: "timer_off",
@@ -211,8 +219,10 @@ export default function PaymentResultPage({ mode }) {
         description: "Thanh toán đã vượt quá thời gian xử lý và booking đã hết hạn.",
         noteTitle: "Không phát hành vé.",
         noteBody: "Ghế đã được giải phóng theo kết quả backend. Bạn cần tạo một booking mới.",
-        primaryAction: { label: "Đặt vé lại", to: "/search" },
-        secondaryAction: { label: "Về trang chủ", to: "/" },
+        actions: [
+          { label: "Đặt vé lại", to: "/search" },
+          { label: "Về trang chủ", to: "/" },
+        ],
       },
       failed: {
         icon: "error",
@@ -223,8 +233,10 @@ export default function PaymentResultPage({ mode }) {
         noteBody: seatsReleased
           ? "Ghế đã được giải phóng theo trạng thái booking từ backend."
           : "Trang này không xác nhận ghế đã được giải phóng. Không có retry payment tự động.",
-        primaryAction: { label: "Tìm chuyến khác", to: "/search" },
-        secondaryAction: { label: "Về trang chủ", to: "/" },
+        actions: [
+          { label: "Tìm chuyến khác", to: "/search" },
+          { label: "Về trang chủ", to: "/" },
+        ],
       },
     }[resultType];
 
@@ -244,10 +256,7 @@ export default function PaymentResultPage({ mode }) {
           <p>{view.noteBody}</p>
         </section>
 
-        <ResultActions
-          primaryAction={view.primaryAction}
-          secondaryAction={view.secondaryAction}
-        />
+        <ResultActions actions={view.actions} />
       </article>
     );
   } else {
@@ -264,7 +273,7 @@ export default function PaymentResultPage({ mode }) {
   return (
     <main className="payment-page payment-result-page">
       <div className="payment-page__shell">
-        <PaymentFlowHeader />
+        <PaymentFlowHeader activeStep={5} />
         <div className="payment-result__layout">{content}</div>
       </div>
     </main>

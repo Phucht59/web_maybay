@@ -6,7 +6,12 @@ const PAYMENT_STEPS = [
   "Hoàn tất",
 ];
 
-export default function PaymentFlowHeader() {
+export default function PaymentFlowHeader({ activeStep = 4 }) {
+  const requestedStep = Number(activeStep);
+  const normalizedActiveStep = Number.isInteger(requestedStep)
+    ? Math.min(PAYMENT_STEPS.length, Math.max(1, requestedStep))
+    : 4;
+
   return (
     <header className="payment-flow">
       <div className="payment-flow__intro">
@@ -19,8 +24,8 @@ export default function PaymentFlowHeader() {
         <ol className="payment-flow__steps">
           {PAYMENT_STEPS.map((label, index) => {
             const stepNumber = index + 1;
-            const completed = stepNumber < 4;
-            const active = stepNumber === 4;
+            const completed = stepNumber < normalizedActiveStep;
+            const active = stepNumber === normalizedActiveStep;
 
             return (
               <li
