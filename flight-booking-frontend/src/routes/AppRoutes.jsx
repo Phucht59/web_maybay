@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import FlightSelectionPage from "../pages/flight-selection/FlightSelectionPage";
 import BookingSeatPage from "../pages/booking/BookingSeatPage";
 import PaymentPage from "../pages/payment/PaymentPage";
+import PaymentProcessingPage from "../pages/payment/PaymentProcessingPage";
 import HomePage from "../pages/home/HomePage";
 import FlightSearchPage from "../pages/search/FlightSearchPage";
 import LoginPage from "../pages/auth/LoginPage";
@@ -49,6 +50,10 @@ function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route path="/booking/:id" element={<BookingSeatPage />} />
           <Route path="/payment/:bookingId" element={<PaymentPage />} />
+          <Route
+            path="/payment/:bookingId/processing/:paymentId"
+            element={<PaymentProcessingPage />}
+          />
         </Route>
 
         <Route path="/admin" element={<AdminLayout />}>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CancelPaymentModal from "../../components/payment/CancelPaymentModal";
 import CheckoutInformationCard from "../../components/payment/CheckoutInformationCard";
 import CheckoutSummaryCard from "../../components/payment/CheckoutSummaryCard";
@@ -26,6 +26,7 @@ const CANCELLATION_STATES = {
 };
 
 const PAYMENT_METHODS = new Set(["Card", "OnlineBanking", "EWallet", "QrBanking"]);
+const PAYMENT_RESPONSE_STATUSES = new Set(["Pending", "Succeeded", "Cancelled", "Failed"]);
 const CLEAR_ATTEMPT_CODES = new Set([
   "BookingExpired",
   "BookingNotPayable",
@@ -184,6 +185,7 @@ function getConfirmButtonLabel(paymentState, amount) {
 
 export default function PaymentPage() {
   const { bookingId } = useParams();
+  const navigate = useNavigate();
   const normalizedBookingId = Number(bookingId);
   const initialAttempt = readPaymentAttempt(normalizedBookingId);
 
@@ -376,8 +378,31 @@ export default function PaymentPage() {
         idempotencyKey: activeAttempt.idempotencyKey,
       });
 
+      const responsePaymentId = Number(response?.paymentId);
+      const responseBookingId = Number(response?.bookingId);
+      const hasValidResponseIdentity = Number.isInteger(responsePaymentId)
+        && responsePaymentId > 0
+        && Number.isInteger(responseBookingId)
+        && responseBookingId === normalizedBookingId;
+      const hasSupportedStatus = PAYMENT_RESPONSE_STATUSES.has(response?.status);
+
+      if (!hasValidResponseIdentity || !hasSupportedStatus) {
+        setPaymentResponse(null);
+        setPaymentFeedback({
+          code: "InvalidPaymentResponse",
+          message: "Phản hồi thanh toán không nhất quán. Hãy gửi lại đúng yêu cầu trước đó để kiểm tra.",
+        });
+        setPaymentState(PAYMENT_STATES.UNCERTAIN_ERROR);
+        submitGuardRef.current = false;
+        return;
+      }
+
       setPaymentResponse(response);
       setPaymentState(PAYMENT_STATES.ACCEPTED);
+      navigate(
+        `/payment/${responseBookingId}/processing/${responsePaymentId}`,
+        { replace: true },
+      );
     } catch (requestError) {
       const result = classifyPaymentError(requestError);
 
