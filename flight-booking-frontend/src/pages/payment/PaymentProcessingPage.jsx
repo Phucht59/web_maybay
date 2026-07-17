@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CancelPaymentModal from "../../components/payment/CancelPaymentModal";
 import PaymentFlowHeader from "../../components/payment/PaymentFlowHeader";
 import usePaymentStatusPolling from "../../hooks/usePaymentStatusPolling";
@@ -127,7 +127,7 @@ function PaymentDetails({ payment }) {
     <dl className="payment-processing__details">
       <div><dt>Payment ID</dt><dd>{payment.paymentId}</dd></div>
       <div><dt>Booking ID</dt><dd>{payment.bookingId}</dd></div>
-      <div><dt>Số tiền</dt><dd>{formatMoney(payment.amount)}</dd></div>
+      <div className="is-total"><dt>Số tiền</dt><dd>{formatMoney(payment.amount)}</dd></div>
       <div><dt>Phương thức</dt><dd>{payment.method}</dd></div>
       <div><dt>Nhà cung cấp</dt><dd>{payment.provider}</dd></div>
       <div><dt>Trạng thái backend</dt><dd>{payment.status}</dd></div>
@@ -137,6 +137,7 @@ function PaymentDetails({ payment }) {
 
 export default function PaymentProcessingPage() {
   const { bookingId, paymentId } = useParams();
+  const navigate = useNavigate();
   const normalizedBookingId = Number(bookingId);
   const normalizedPaymentId = Number(paymentId);
   const routeIsValid = Number.isInteger(normalizedBookingId)
@@ -165,6 +166,7 @@ export default function PaymentProcessingPage() {
   const [cancellationNotice, setCancellationNotice] = useState("");
   const [cancelledResponse, setCancelledResponse] = useState(null);
   const cancelGuardRef = useRef(false);
+  const resultNavigationRef = useRef(false);
 
   const paymentMatchesRoute = payment?.paymentId === normalizedPaymentId
     && payment?.bookingId === normalizedBookingId;
@@ -181,6 +183,7 @@ export default function PaymentProcessingPage() {
 
   useEffect(() => {
     cancelGuardRef.current = false;
+    resultNavigationRef.current = false;
     setCancelModalOpen(false);
     setCancelSubmitting(false);
     setCancelError("");
@@ -193,15 +196,21 @@ export default function PaymentProcessingPage() {
       payment?.paymentId !== normalizedPaymentId
       || payment?.bookingId !== normalizedBookingId
       || !TERMINAL_STATUSES.has(payment.status)
+      || resultNavigationRef.current
     ) return;
 
+    resultNavigationRef.current = true;
     stopPolling();
     window.sessionStorage.removeItem(getAttemptStorageKey(normalizedBookingId));
     cancelGuardRef.current = true;
     setCancelModalOpen(false);
     setCancelSubmitting(false);
     setCancelError("");
-  }, [normalizedBookingId, normalizedPaymentId, payment, stopPolling]);
+    navigate(
+      `/payment/${normalizedBookingId}/result/${normalizedPaymentId}`,
+      { replace: true },
+    );
+  }, [navigate, normalizedBookingId, normalizedPaymentId, payment, stopPolling]);
 
   const closeCancelModal = useCallback(() => {
     if (cancelGuardRef.current || cancelSubmitting) return;
@@ -226,11 +235,27 @@ export default function PaymentProcessingPage() {
     try {
       const response = await bookingService.cancelBooking(normalizedBookingId);
 
+      if (
+        Number(response?.bookingId) !== normalizedBookingId
+        || response?.bookingStatus !== "Cancelled"
+      ) {
+        cancelGuardRef.current = false;
+        setCancelSubmitting(false);
+        setCancelError("Phản hồi hủy booking từ máy chủ không hợp lệ. Vui lòng kiểm tra lại.");
+        refreshNow();
+        return;
+      }
+
       window.sessionStorage.removeItem(getAttemptStorageKey(normalizedBookingId));
       setCancelledResponse(response);
       setCancellationNotice("Đã hủy booking và giải phóng ghế theo kết quả từ máy chủ.");
       setCancelSubmitting(false);
       setCancelModalOpen(false);
+      resultNavigationRef.current = true;
+      navigate(
+        `/payment/${normalizedBookingId}/result/${normalizedPaymentId}`,
+        { replace: true },
+      );
     } catch (requestError) {
       const cancellationError = classifyCancellationError(requestError);
       const finalizationWon = requestError.response?.status === 409
@@ -255,7 +280,7 @@ export default function PaymentProcessingPage() {
 
   if (!routeIsValid) {
     content = (
-      <section className="payment-processing__card is-error" role="alert">
+      <section className="payment-processing__card is-state is-error" role="alert">
         <span className="payment-processing__status-icon material-symbols-outlined" aria-hidden="true">link_off</span>
         <h2>Địa chỉ xử lý thanh toán không hợp lệ</h2>
         <p>Booking ID và Payment ID phải là số nguyên dương.</p>
@@ -263,7 +288,7 @@ export default function PaymentProcessingPage() {
     );
   } else if (initialLoading) {
     content = (
-      <section className="payment-processing__card" aria-live="polite" aria-busy="true">
+      <section className="payment-processing__card is-state" aria-live="polite" aria-busy="true">
         <span className="payment-processing__spinner material-symbols-outlined" aria-hidden="true">progress_activity</span>
         <h2>Đang kiểm tra trạng thái thanh toán</h2>
         <p>Hệ thống đang đọc trạng thái mới nhất từ máy chủ.</p>
@@ -271,7 +296,7 @@ export default function PaymentProcessingPage() {
     );
   } else if (error) {
     content = (
-      <section className="payment-processing__card is-error" role="alert">
+      <section className="payment-processing__card is-state is-error" role="alert">
         <span className="payment-processing__status-icon material-symbols-outlined" aria-hidden="true">error</span>
         <h2>Không thể kiểm tra trạng thái thanh toán</h2>
         <p>{error.message}</p>
@@ -283,39 +308,47 @@ export default function PaymentProcessingPage() {
     );
   } else if (isPending) {
     content = (
-      <section className="payment-processing__card is-pending" aria-live="polite" aria-busy={refreshing}>
-        <span className="payment-processing__spinner material-symbols-outlined" aria-hidden="true">progress_activity</span>
-        <p className="payment-processing__eyebrow">THANH TOÁN MÔ PHỎNG</p>
-        <h2>Đang xử lý thanh toán</h2>
-        <p>{getPendingMessage(displayPayment.simulationState)}</p>
-        {cancellationNotice ? <p className="payment-processing__notice">{cancellationNotice}</p> : null}
+      <section className="payment-processing__card is-processing" aria-live="polite" aria-busy={refreshing}>
+        <header className="payment-processing__hero">
+          <span className="payment-processing__spinner material-symbols-outlined" aria-hidden="true">progress_activity</span>
+          <p className="payment-processing__eyebrow">THANH TOÁN MÔ PHỎNG</p>
+          <h2>Thanh toán đang được xử lý</h2>
+          <p>{getPendingMessage(displayPayment.simulationState)}</p>
+        </header>
 
-        <PaymentDetails payment={displayPayment} />
+        <div className="payment-processing__content">
+          {cancellationNotice ? <p className="payment-processing__notice">{cancellationNotice}</p> : null}
 
-        <div className="payment-processing__timing">
-          <span>Thời gian xử lý dự kiến</span>
-          <strong>{getExpectedProcessingText(displayPayment)}</strong>
-          <small>
-            Chu kỳ kiểm tra: 1,5 giây · {polling ? "Đang theo dõi" : "Tạm dừng"}
-          </small>
-        </div>
+          <section className="payment-processing__panel" aria-labelledby="payment-processing-details-title">
+            <h3 id="payment-processing-details-title">Thông tin giao dịch</h3>
+            <PaymentDetails payment={displayPayment} />
+          </section>
 
-        <div className="payment-processing__actions">
-          <button
-            type="button"
-            onClick={refreshNow}
-            disabled={refreshing || cancelSubmitting}
-          >
-            {refreshing ? "Đang kiểm tra..." : "Kiểm tra ngay"}
-          </button>
-          <button
-            type="button"
-            className="is-danger"
-            onClick={openCancelModal}
-            disabled={cancelSubmitting}
-          >
-            {cancelSubmitting ? "Đang hủy..." : "Hủy thanh toán"}
-          </button>
+          <div className="payment-processing__timing">
+            <span>Thời gian xử lý dự kiến</span>
+            <strong>{getExpectedProcessingText(displayPayment)}</strong>
+            <small>
+              Chu kỳ kiểm tra: 1,5 giây · {polling ? "Đang theo dõi" : "Tạm dừng"}
+            </small>
+          </div>
+
+          <div className="payment-processing__actions">
+            <button
+              type="button"
+              onClick={refreshNow}
+              disabled={refreshing || cancelSubmitting}
+            >
+              {refreshing ? "Đang kiểm tra..." : "Kiểm tra ngay"}
+            </button>
+            <button
+              type="button"
+              className="is-danger"
+              onClick={openCancelModal}
+              disabled={cancelSubmitting}
+            >
+              {cancelSubmitting ? "Đang hủy..." : "Hủy thanh toán"}
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -331,7 +364,7 @@ export default function PaymentProcessingPage() {
 
     content = (
       <section
-        className={`payment-processing__card is-terminal is-${displayPayment.status.toLowerCase()}`}
+        className={`payment-processing__card is-state is-terminal is-${displayPayment.status.toLowerCase()}`}
         aria-live="polite"
       >
         <span className="payment-processing__status-icon material-symbols-outlined" aria-hidden="true">{icon}</span>
@@ -353,7 +386,7 @@ export default function PaymentProcessingPage() {
     );
   } else {
     content = (
-      <section className="payment-processing__card is-error" role="alert">
+      <section className="payment-processing__card is-state is-error" role="alert">
         <span className="payment-processing__status-icon material-symbols-outlined" aria-hidden="true">warning</span>
         <h2>Chưa có dữ liệu trạng thái hợp lệ</h2>
         <p>Vui lòng thử kiểm tra lại từ máy chủ.</p>

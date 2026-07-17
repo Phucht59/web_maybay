@@ -3,6 +3,7 @@ import FlightSelectionPage from "../pages/flight-selection/FlightSelectionPage";
 import BookingSeatPage from "../pages/booking/BookingSeatPage";
 import PaymentPage from "../pages/payment/PaymentPage";
 import PaymentProcessingPage from "../pages/payment/PaymentProcessingPage";
+import PaymentResultPage from "../pages/payment/PaymentResultPage";
 import HomePage from "../pages/home/HomePage";
 import FlightSearchPage from "../pages/search/FlightSearchPage";
 import LoginPage from "../pages/auth/LoginPage";
@@ -53,6 +54,14 @@ function AppRoutes() {
           <Route
             path="/payment/:bookingId/processing/:paymentId"
             element={<PaymentProcessingPage />}
+          />
+          <Route
+            path="/payment/:bookingId/result/cancelled"
+            element={<PaymentResultPage mode="booking-cancelled" />}
+          />
+          <Route
+            path="/payment/:bookingId/result/:paymentId"
+            element={<PaymentResultPage mode="payment" />}
           />
         </Route>
 

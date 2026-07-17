@@ -1,21 +1,33 @@
 .payment-processing__layout {
-  width: min(820px, 100%);
+  width: min(var(--payment-status-content-width), 100%);
   margin: 0 auto;
 }
 
 .payment-processing__card {
-  padding: 34px;
+  overflow: hidden;
   border: 1px solid rgba(191, 200, 205, 0.62);
-  border-radius: 18px;
+  border-radius: var(--payment-status-card-radius);
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 42px rgba(23, 76, 83, 0.11);
+  box-shadow: var(--payment-status-card-shadow);
   text-align: center;
+}
+
+.payment-processing__card.is-state {
+  padding: 42px 34px;
+}
+
+.payment-processing__card.is-processing {
+  border-top: 4px solid #c98b27;
+}
+
+.payment-processing__card h2,
+.payment-processing__panel h3 {
+  color: var(--payment-primary-dark);
+  font-family: "Noto Serif", serif;
 }
 
 .payment-processing__card h2 {
   margin: 14px 0 8px;
-  color: var(--payment-primary-dark);
-  font-family: "Noto Serif", serif;
   font-size: clamp(24px, 4vw, 34px);
 }
 
@@ -28,6 +40,7 @@
 }
 
 .payment-processing__eyebrow {
+  margin: 16px 0 5px !important;
   color: var(--payment-gold) !important;
   font-size: 11px !important;
   font-weight: 900;
@@ -36,19 +49,49 @@
 
 .payment-processing__spinner,
 .payment-processing__status-icon {
-  width: 62px;
-  height: 62px;
+  width: 68px;
+  height: 68px;
   margin: 0 auto;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #e8f4f4;
-  color: var(--payment-primary);
-  font-size: 34px;
+  font-size: 38px;
 }
 
 .payment-processing__spinner {
+  background: #fff0cf;
+  color: #8b5b13;
   animation: payment-processing-spin 1.1s linear infinite;
+}
+
+.payment-processing__hero {
+  padding: 38px 32px 30px;
+  border-bottom: 1px solid #ecd7ae;
+  background: linear-gradient(145deg, #fff7e7, #fffdf8);
+}
+
+.payment-processing__hero > p:last-child {
+  max-width: 620px;
+  margin: 9px auto 0;
+  color: var(--payment-muted);
+  line-height: 1.65;
+}
+
+.payment-processing__content {
+  padding: 26px;
+}
+
+.payment-processing__panel {
+  padding: 20px;
+  border: 1px solid var(--payment-line);
+  border-radius: 13px;
+  background: #fffdf8;
+  text-align: left;
+}
+
+.payment-processing__panel h3 {
+  margin: 0 0 15px;
+  font-size: 19px;
 }
 
 .payment-processing__details {
@@ -59,6 +102,10 @@
   border-radius: 12px;
   overflow: hidden;
   text-align: left;
+}
+
+.payment-processing__panel .payment-processing__details {
+  margin: 0;
 }
 
 .payment-processing__details div {
@@ -93,14 +140,21 @@
   text-align: right;
 }
 
+.payment-processing__details .is-total dt,
+.payment-processing__details .is-total dd {
+  color: #765018;
+  font-weight: 900;
+}
+
 .payment-processing__timing {
   margin-top: 18px;
   padding: 16px;
   display: grid;
   gap: 4px;
   border-radius: 11px;
-  background: #eef8f8;
-  color: var(--payment-primary-dark);
+  border: 1px solid #ecd7ae;
+  background: #fff8ed;
+  color: #765018;
 }
 
 .payment-processing__timing span,
@@ -125,14 +179,14 @@
   padding: 10px 16px;
   border: 0;
   border-radius: 9px;
-  background: var(--payment-primary);
+  background: #8b5b13;
   color: #fff;
   font-weight: 800;
   cursor: pointer;
 }
 
 .payment-processing__card button:hover:not(:disabled) {
-  background: var(--payment-primary-dark);
+  background: #70470d;
 }
 
 .payment-processing__card button:disabled {
@@ -208,10 +262,21 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .payment-processing__card {
-    padding: 26px 18px;
     border-radius: 13px;
+  }
+
+  .payment-processing__card.is-state {
+    padding: 34px 18px;
+  }
+
+  .payment-processing__hero {
+    padding: 30px 18px 24px;
+  }
+
+  .payment-processing__content {
+    padding: 18px;
   }
 
   .payment-processing__details,

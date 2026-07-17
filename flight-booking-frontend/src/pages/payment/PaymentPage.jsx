@@ -322,6 +322,17 @@ export default function PaymentPage() {
     try {
       const response = await bookingService.cancelBooking(normalizedBookingId);
 
+      if (
+        Number(response?.bookingId) !== normalizedBookingId
+        || response?.bookingStatus !== "Cancelled"
+      ) {
+        setCancellationResponse(null);
+        setCancellationFeedback("Phản hồi hủy booking từ máy chủ không hợp lệ. Vui lòng thử lại.");
+        setCancellationState(CANCELLATION_STATES.FAILED);
+        cancelGuardRef.current = false;
+        return;
+      }
+
       window.sessionStorage.removeItem(getAttemptStorageKey(normalizedBookingId));
       paymentAttemptRef.current = null;
       submitGuardRef.current = false;
@@ -338,6 +349,10 @@ export default function PaymentPage() {
       setCancellationFeedback("Đã hủy booking và giải phóng ghế.");
       setCancellationState(CANCELLATION_STATES.SUCCEEDED);
       setCancelModalOpen(false);
+      navigate(
+        `/payment/${normalizedBookingId}/result/cancelled`,
+        { replace: true },
+      );
     } catch (requestError) {
       setCancellationResponse(null);
       setCancellationFeedback(classifyCancellationError(requestError));
