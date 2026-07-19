@@ -1,66 +1,72 @@
-const item = (slug, title, summary) => ({ slug, title, summary });
+import { baggageGroup } from "./data/baggageData";
+import { checkInGroup } from "./data/checkInData";
+import { airportsGroup } from "./data/airportsData";
+import { specialServicesGroup } from "./data/specialServicesData";
+import { travelAdviceGroup } from "./data/travelAdviceData";
+import { getTravelImage } from "./data/travelImageRegistry";
 
-export const TRAVEL_GROUPS = [
-  {
-    slug: "baggage", title: "Hành lý", icon: "business_center",
-    description: "Chuẩn bị hành lý đúng cách để hành trình nhẹ nhàng và chủ động hơn.",
-    items: [
-      item("baggage-information", "Tra cứu thông tin hành lý", "Tổng quan các loại hành lý và những điều nên kiểm tra trước chuyến bay."),
-      item("carry-on-baggage", "Hành lý xách tay", "Cách sắp xếp vật dụng cần thiết và chuẩn bị hành lý mang lên khoang khách."),
-      item("checked-baggage", "Hành lý ký gửi miễn cước", "Thông tin hướng dẫn chung về hành lý ký gửi đi cùng vé."),
-      item("extra-baggage", "Mua thêm hành lý ký gửi", "Các bước tham khảo khi nhu cầu hành lý vượt quá tiêu chuẩn vé."),
-      item("special-baggage", "Hành lý đặc biệt", "Chuẩn bị dụng cụ thể thao, nhạc cụ và vật dụng có kích thước đặc biệt."),
-      item("restricted-baggage", "Hành lý hạn chế vận chuyển", "Nhận biết những vật phẩm cần kiểm tra kỹ trước khi đóng gói."),
-      item("baggage-issues", "Gặp vấn đề với hành lý", "Những việc nên làm khi hành lý chậm, hư hỏng hoặc thất lạc."),
-    ],
-  },
-  {
-    slug: "check-in", title: "Làm thủ tục", icon: "person_check",
-    description: "Chọn phương thức làm thủ tục phù hợp và đến cửa khởi hành đúng giờ.",
-    items: [
-      item("online-check-in", "Làm thủ tục trực tuyến", "Chuẩn bị thông tin đặt chỗ và nhận thẻ lên máy bay trực tuyến."),
-      item("kiosk-check-in", "Làm thủ tục tại kiosk", "Hướng dẫn thao tác nhanh tại kiosk tự phục vụ ở sân bay."),
-      item("airport-check-in", "Làm thủ tục tại sân bay", "Các bước từ quầy làm thủ tục đến khu vực kiểm tra an ninh."),
-    ],
-  },
-  {
-    slug: "airports", title: "Thông tin sân bay", icon: "domain",
-    description: "Tìm hiểu tiện ích, lối di chuyển và dịch vụ hỗ trợ tại sân bay.",
-    items: [
-      item("business-lounges", "Phòng khách Thương gia", "Không gian nghỉ ngơi và tiện ích trước giờ khởi hành."),
-      item("airport-priority-services", "Dịch vụ ưu tiên tại sân bay", "Thông tin chung về các luồng phục vụ ưu tiên."),
-      item("airport-information", "Thông tin sân bay", "Những thông tin hữu ích về nhà ga, giao thông và thời gian có mặt."),
-      item("connecting-services", "Dịch vụ nối chuyến", "Chuẩn bị cho hành trình có một hoặc nhiều chặng nối chuyến."),
-      item("airport-maps", "Bản đồ sân bay", "Cách xác định quầy làm thủ tục, cửa ra máy bay và khu tiện ích."),
-    ],
-  },
-  {
-    slug: "special-services", title: "Dịch vụ đặc biệt", icon: "featured_seasonal_and_gifts",
-    description: "Chủ động đăng ký hỗ trợ phù hợp với nhu cầu riêng của từng hành khách.",
-    items: [
-      item("pet-transport", "Vận chuyển thú cưng", "Chuẩn bị giấy tờ, lồng vận chuyển và kế hoạch chăm sóc thú cưng."),
-      item("special-meals", "Suất ăn đặc biệt", "Tham khảo cách gửi yêu cầu suất ăn theo nhu cầu cá nhân."),
-      item("services-for-children", "Dịch vụ cho trẻ em", "Chuẩn bị một chuyến bay thoải mái hơn cho gia đình có trẻ nhỏ."),
-      item("unaccompanied-minors", "Trẻ em đi một mình", "Các bước chuẩn bị và bàn giao trẻ trong hành trình không có người lớn đi cùng."),
-      item("infant-separate-seat", "Trẻ em dưới 02 tuổi ngồi ghế riêng", "Những điểm gia đình nên xác nhận khi đặt ghế riêng cho em bé."),
-      item("reduced-mobility", "Hành khách hạn chế khả năng di chuyển", "Hướng dẫn chung để yêu cầu xe lăn và hỗ trợ tại sân bay."),
-      item("pregnant-passengers", "Phụ nữ mang thai", "Các lưu ý sức khỏe và giấy tờ nên chuẩn bị trước chuyến bay."),
-      item("extra-seat", "Mua thêm ghế", "Tham khảo lựa chọn thêm ghế cho sự thoải mái hoặc vật dụng đặc biệt."),
-      item("medical-clearance", "Hành khách cần xác nhận sức khỏe", "Chuẩn bị thông tin y tế khi hành trình cần được đánh giá trước."),
-      item("special-service-fees", "Phí dịch vụ đặc biệt", "Tổng quan các yếu tố có thể ảnh hưởng đến chi phí dịch vụ hỗ trợ."),
-    ],
-  },
-  {
-    slug: "travel-advice", title: "Chuẩn bị cho chuyến bay", icon: "checklist",
-    description: "Checklist thiết thực cho từng loại hành trình trước ngày cất cánh.",
-    items: [
-      item("vietnam-domestic-flights", "Chuyến bay nội địa Việt Nam", "Giấy tờ, thời gian và hành lý cho hành trình trong nước."),
-      item("flights-to-vietnam", "Chuyến bay đến Việt Nam", "Chuẩn bị nhập cảnh, kết nối và di chuyển khi đến Việt Nam."),
-      item("international-flights-from-vietnam", "Chuyến bay từ Việt Nam đi quốc tế", "Checklist hộ chiếu, thị thực và thời gian có mặt tại sân bay."),
-      item("smooth-journey-guide", "Cẩm nang cho một hành trình thuận lợi", "Những thói quen nhỏ giúp chuyến đi bớt căng thẳng và nhiều trải nghiệm hơn."),
-    ],
-  },
-];
+const GROUP_IMAGE_KEYS = Object.freeze({
+  baggage: "category-baggage",
+  "check-in": "category-check-in",
+  airports: "category-airports",
+  "special-services": "category-special-services",
+  "travel-advice": "category-travel-advice",
+});
+
+const ARTICLE_IMAGE_KEYS = Object.freeze({
+  "baggage-information": "baggage-information",
+  "carry-on-baggage": "baggage-carry-on",
+  "checked-baggage": "baggage-checked",
+  "extra-baggage": "baggage-extra",
+  "special-baggage": "baggage-special",
+  "restricted-baggage": "baggage-restricted",
+  "baggage-issues": "baggage-issues",
+  "online-check-in": "check-in-online",
+  "kiosk-check-in": "check-in-kiosk",
+  "airport-check-in": "check-in-airport",
+  "business-lounges": "airport-lounge",
+  "airport-priority-services": "airport-priority",
+  "airport-information": "airport-information",
+  "connecting-services": "airport-connecting",
+  "airport-maps": "airport-map",
+  "pet-transport": "special-pet",
+  "special-meals": "special-meals",
+  "services-for-children": "special-children",
+  "unaccompanied-minors": "special-unaccompanied-minor",
+  "infant-separate-seat": "special-infant-seat",
+  "reduced-mobility": "special-mobility",
+  "pregnant-passengers": "special-pregnancy",
+  "extra-seat": "special-extra-seat",
+  "medical-clearance": "special-medical",
+  "special-service-fees": "special-fees",
+  "vietnam-domestic-flights": "advice-domestic-vietnam",
+  "flights-to-vietnam": "advice-to-vietnam",
+  "international-flights-from-vietnam": "advice-international-from-vietnam",
+  "smooth-journey-guide": "advice-smooth-journey",
+});
+
+const VISUAL_VARIANTS = ["editorial", "object-focus", "process", "illustration", "wide", "diagram", "portrait"];
+
+export const TRAVEL_OVERVIEW = Object.freeze({
+  eyebrow: "Cẩm nang hành trình",
+  title: "Tự tin hơn từ lúc chuẩn bị đến khi hạ cánh",
+  description: "Khám phá hướng dẫn trực quan về hành lý, làm thủ tục, sân bay và những hỗ trợ có thể cần trên đường đi.",
+  imageKey: "travel-overview",
+  visualVariant: "wide",
+});
+
+export const TRAVEL_GROUPS = [baggageGroup, checkInGroup, airportsGroup, specialServicesGroup, travelAdviceGroup]
+  .map((group, groupIndex) => ({
+    ...group,
+    imageKey: group.imageKey || GROUP_IMAGE_KEYS[group.slug],
+    visualVariant: "wide",
+    items: group.items.map((entry, entryIndex) => ({
+      ...entry,
+      imageKey: entry.imageKey || ARTICLE_IMAGE_KEYS[entry.slug],
+      visualVariant: VISUAL_VARIANTS[(groupIndex + entryIndex) % VISUAL_VARIANTS.length],
+      imageAspectRatio: "3 / 2",
+    })),
+  }));
 
 export const travelGroupPath = (group) => `/travel-information/${group.slug}`;
 export const travelItemPath = (group, entry) => `${travelGroupPath(group)}/${entry.slug}`;
@@ -70,3 +76,49 @@ export const findTravelItem = (groupSlug, itemSlug) => {
   const entry = group?.items.find((candidate) => candidate.slug === itemSlug);
   return group && entry ? { group, entry } : null;
 };
+
+function validateTravelRegistry(groups) {
+  const errors = [];
+  const groupSlugs = new Set();
+  const articleSlugs = new Set();
+  const primaryImageKeys = new Map([[TRAVEL_OVERVIEW.imageKey, "/travel-information"]]);
+
+  for (const group of groups) {
+    if (groupSlugs.has(group.slug)) errors.push(`Slug nhóm bị trùng: ${group.slug}`);
+    groupSlugs.add(group.slug);
+    if (!group.title) errors.push(`Nhóm ${group.slug} thiếu title`);
+    if (!group.description) errors.push(`Nhóm ${group.slug} thiếu description`);
+    try { getTravelImage(group.imageKey); } catch (error) { errors.push(error.message); }
+    if (primaryImageKeys.has(group.imageKey)) errors.push(`Ảnh primary ${group.imageKey} bị dùng lại`);
+    primaryImageKeys.set(group.imageKey, travelGroupPath(group));
+
+    for (const entry of group.items) {
+      const route = travelItemPath(group, entry);
+      if (!route.startsWith("/travel-information/") || route.includes("//")) errors.push(`Route không hợp lệ: ${route}`);
+      if (articleSlugs.has(entry.slug)) errors.push(`Slug bài viết bị trùng: ${entry.slug}`);
+      articleSlugs.add(entry.slug);
+      if (!entry.title) errors.push(`Bài ${entry.slug} thiếu title`);
+      if (!entry.summary) errors.push(`Bài ${entry.slug} thiếu summary`);
+      try { getTravelImage(entry.imageKey); } catch (error) { errors.push(error.message); }
+      if (primaryImageKeys.has(entry.imageKey)) errors.push(`Ảnh primary ${entry.imageKey} bị dùng cho ${primaryImageKeys.get(entry.imageKey)} và ${route}`);
+      primaryImageKeys.set(entry.imageKey, route);
+    }
+  }
+
+  for (const group of groups) {
+    for (const entry of group.items) {
+      for (const slug of entry.relatedSlugs || []) {
+        if (!articleSlugs.has(slug)) errors.push(`${entry.slug} trỏ relatedSlugs không tồn tại: ${slug}`);
+      }
+      for (const action of [entry.primaryAction, entry.secondaryAction]) {
+        if (action?.to && !action.to.startsWith("/")) errors.push(`${entry.slug} có internal route không hợp lệ: ${action.to}`);
+      }
+    }
+  }
+  if (errors.length) throw new Error(`Travel information data không hợp lệ:\n${errors.join("\n")}`);
+}
+
+if (import.meta.env.DEV) validateTravelRegistry(TRAVEL_GROUPS);
+
+export const TRAVEL_ARTICLES = TRAVEL_GROUPS.flatMap((group) => group.items.map((entry) => ({ group, entry })));
+export const findTravelArticleBySlug = (slug) => TRAVEL_ARTICLES.find(({ entry }) => entry.slug === slug);

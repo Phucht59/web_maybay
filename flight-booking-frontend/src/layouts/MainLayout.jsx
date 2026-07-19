@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, Outlet, useLocation } from "react-router-dom";
 import { authService } from "../services/authService";
-import TravelInformationMenu from "../features/travel-information/TravelInformationMenu";
 import "../styles/pages/home.css"; // Giữ các class CSS của header/sidebar
 import "../styles/pages/flight-selection.css";
+
+const TravelInformationMenu = React.lazy(() => import("../features/travel-information/TravelInformationMenu"));
 
 const MaterialIcon = ({ name, fill = false }) => (
   <span
@@ -188,7 +189,9 @@ function MainLayout() {
           </button>
         </div>
       </aside>
-      <TravelInformationMenu open={isTravelMenuOpen} onClose={closeTravelMenu} ref={travelMenuRef} triggerRef={travelTriggerRef} />
+      <React.Suspense fallback={null}>
+        <TravelInformationMenu open={isTravelMenuOpen} onClose={closeTravelMenu} ref={travelMenuRef} triggerRef={travelTriggerRef} />
+      </React.Suspense>
 
       {/* Main Content Area */}
       <div className="main-content-wrapper" style={{ marginLeft: "80px", minHeight: "100vh", position: "relative" }}>
