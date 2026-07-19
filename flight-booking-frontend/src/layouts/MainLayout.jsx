@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, Outlet, useLocation } from "react-router-dom";
 import { authService } from "../services/authService";
+import TravelInformationMenu from "../features/travel-information/TravelInformationMenu";
 import "../styles/pages/home.css"; // Giữ các class CSS của header/sidebar
 import "../styles/pages/flight-selection.css";
 
@@ -28,7 +29,10 @@ function MainLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [isTopBarHidden, setIsTopBarHidden] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isTravelMenuOpen, setIsTravelMenuOpen] = useState(false);
   const topBarRef = useRef(null);
+  const travelMenuRef = useRef(null);
+  const travelTriggerRef = useRef(null);
   const lastScrollYRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,6 +44,7 @@ function MainLayout() {
     authService.logout();
     navigate("/login", { replace: true });
   };
+  const closeTravelMenu = useCallback(() => setIsTravelMenuOpen(false), []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -66,6 +71,7 @@ function MainLayout() {
 
   useEffect(() => {
     setIsTopBarHidden(false);
+    setIsTravelMenuOpen(false);
     lastScrollYRef.current = window.scrollY;
   }, [location.pathname]);
 
@@ -142,6 +148,24 @@ function MainLayout() {
              // special case for booking
              if (location.pathname.includes("/booking") && item.label === "Mua vé") isActive = true;
              if (location.pathname.includes("/flight-selection") && item.label === "Mua vé") isActive = true;
+             if ((isTravelMenuOpen || location.pathname.startsWith("/travel-information")) && item.label === "Hành trình") isActive = true;
+
+             if (item.label === "Hành trình") {
+               return (
+                 <button
+                   key={i}
+                   ref={travelTriggerRef}
+                   type="button"
+                   className={`flight-selection-sidebar-link${isActive ? " is-active" : ""}`}
+                   aria-expanded={isTravelMenuOpen}
+                   aria-controls="travel-information-menu"
+                   onClick={() => setIsTravelMenuOpen((value) => !value)}
+                 >
+                   <MaterialIcon name={item.icon} fill={!!isActive} />
+                   <span>{item.label}</span>
+                 </button>
+               );
+             }
              
              return (
               <Link
@@ -164,6 +188,7 @@ function MainLayout() {
           </button>
         </div>
       </aside>
+      <TravelInformationMenu open={isTravelMenuOpen} onClose={closeTravelMenu} ref={travelMenuRef} triggerRef={travelTriggerRef} />
 
       {/* Main Content Area */}
       <div className="main-content-wrapper" style={{ marginLeft: "80px", minHeight: "100vh", position: "relative" }}>
