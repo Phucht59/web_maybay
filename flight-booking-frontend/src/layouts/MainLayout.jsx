@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, Outlet, useLocation } from "react-router-dom";
 import { authService } from "../services/authService";
 import "../styles/pages/home.css"; // Giữ các class CSS của header/sidebar
 import "../styles/pages/flight-selection.css";
+
+const TravelInformationMenu = React.lazy(() => import("../features/travel-information/TravelInformationMenu"));
 
 const MaterialIcon = ({ name, fill = false }) => (
   <span
@@ -17,7 +19,7 @@ const MaterialIcon = ({ name, fill = false }) => (
 
 const NAV_ITEMS = [
   { icon: "explore", label: "Khám Phá", to: "/" },
-  { icon: "confirmation_number", label: "Mua vé", to: "/search" },
+  { icon: "confirmation_number", label: "Mua vé", to: "/flight-selection" },
   { icon: "card_membership", label: "Dịch vụ bổ trợ", to: "#" },
   { icon: "map", label: "Hành trình", to: "#" },
   { icon: "flight_takeoff", label: "Trải nghiệm bay", to: "#" },
@@ -26,8 +28,13 @@ const NAV_ITEMS = [
 
 function MainLayout() {
   const [scrolled, setScrolled] = useState(false);
+  const [isTopBarHidden, setIsTopBarHidden] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isTravelMenuOpen, setIsTravelMenuOpen] = useState(false);
   const topBarRef = useRef(null);
+  const travelMenuRef = useRef(null);
+  const travelTriggerRef = useRef(null);
+  const lastScrollYRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,22 +45,43 @@ function MainLayout() {
     authService.logout();
     navigate("/login", { replace: true });
   };
+  const closeTravelMenu = useCallback(() => setIsTravelMenuOpen(false), []);
 
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 50);
+
+      const flightList = document.querySelector(".flight-selection-section");
+      const hasReachedFlightList =
+        location.pathname === "/flight-selection" &&
+        flightList &&
+        flightList.getBoundingClientRect().top <= 96;
+
+      if (!hasReachedFlightList || y < lastScrollYRef.current) {
+        setIsTopBarHidden(false);
+      } else if (y > lastScrollYRef.current) {
+        setIsTopBarHidden(true);
+      }
+
+      lastScrollYRef.current = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setIsTopBarHidden(false);
+    setIsTravelMenuOpen(false);
+    lastScrollYRef.current = window.scrollY;
+  }, [location.pathname]);
 
   return (
     <div className="main-app-layout">
       {/* Top Navigation */}
       <header
         ref={topBarRef}
-        className={`top-bar ${scrolled ? "top-bar-solid" : ""}`}
+        className={`top-bar ${scrolled ? "top-bar-solid" : ""}${isTopBarHidden ? " is-hidden" : ""}`}
         style={{ zIndex: 1000 }}
       >
         <div className="top-bar-left">
@@ -121,6 +149,24 @@ function MainLayout() {
              // special case for booking
              if (location.pathname.includes("/booking") && item.label === "Mua vé") isActive = true;
              if (location.pathname.includes("/flight-selection") && item.label === "Mua vé") isActive = true;
+             if ((isTravelMenuOpen || location.pathname.startsWith("/travel-information")) && item.label === "Hành trình") isActive = true;
+
+             if (item.label === "Hành trình") {
+               return (
+                 <button
+                   key={i}
+                   ref={travelTriggerRef}
+                   type="button"
+                   className={`flight-selection-sidebar-link${isActive ? " is-active" : ""}`}
+                   aria-expanded={isTravelMenuOpen}
+                   aria-controls="travel-information-menu"
+                   onClick={() => setIsTravelMenuOpen((value) => !value)}
+                 >
+                   <MaterialIcon name={item.icon} fill={!!isActive} />
+                   <span>{item.label}</span>
+                 </button>
+               );
+             }
              
              return (
               <Link
@@ -143,6 +189,9 @@ function MainLayout() {
           </button>
         </div>
       </aside>
+      <React.Suspense fallback={null}>
+        <TravelInformationMenu open={isTravelMenuOpen} onClose={closeTravelMenu} ref={travelMenuRef} triggerRef={travelTriggerRef} />
+      </React.Suspense>
 
       {/* Main Content Area */}
       <div className="main-content-wrapper" style={{ marginLeft: "80px", minHeight: "100vh", position: "relative" }}>

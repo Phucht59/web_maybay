@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Kiosk tự phục vụ tại nhà ga</title><desc id="desc">Minh họa kiosk là chủ thể chính với màn hình từng bước.</desc>
+  <defs><linearGradient id="wall" y2="1"><stop stop-color="#d8eff0"/><stop offset="1" stop-color="#f6ead2"/></linearGradient></defs><rect width="1200" height="800" fill="url(#wall)"/>
+  <path d="M0 640h1200v160H0z" fill="#bdd5d4"/><path d="M0 680h1200" stroke="#fff" stroke-width="8"/><path d="M170 0v520M1000 0v520" stroke="#fff" stroke-width="18" opacity=".8"/>
+  <rect x="390" y="90" width="420" height="620" rx="55" fill="#145968"/><rect x="440" y="145" width="320" height="270" rx="26" fill="#f8fcfb"/>
+  <circle cx="510" cy="225" r="34" fill="#dca64f"/><path d="M495 225l12 12 25-30" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/><rect x="565" y="195" width="140" height="22" rx="11" fill="#77aaa8"/><rect x="565" y="245" width="105" height="18" rx="9" fill="#bfd9d6"/><rect x="485" y="325" width="230" height="42" rx="21" fill="#0b7482"/>
+  <rect x="475" y="470" width="250" height="48" rx="15" fill="#0a3e4a"/><rect x="525" y="555" width="150" height="90" rx="18" fill="#ecbd68"/><circle cx="770" cy="630" r="26" fill="#0a3e4a"/>
+</svg>

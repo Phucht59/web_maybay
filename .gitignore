@@ -5,3 +5,5 @@ obj/
 *.suo
 *.userosscache
 *.sln.docstates
+*.db-shm
+*.db-wal

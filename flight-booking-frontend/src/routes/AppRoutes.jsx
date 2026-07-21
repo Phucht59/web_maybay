@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import FlightSelectionPage from "../pages/flight-selection/FlightSelectionPage";
 import BookingSeatPage from "../pages/booking/BookingSeatPage";
@@ -6,7 +7,7 @@ import PaymentPage from "../pages/payment/PaymentPage";
 import PaymentProcessingPage from "../pages/payment/PaymentProcessingPage";
 import PaymentResultPage from "../pages/payment/PaymentResultPage";
 import HomePage from "../pages/home/HomePage";
-import FlightSearchPage from "../pages/search/FlightSearchPage";
+import BlogArticlePage from "../pages/blog/BlogArticlePage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import DashboardPage from "../pages/admin/dashboard/DashboardPage";
@@ -36,13 +37,23 @@ import AdminLayout from "../layouts/AdminLayout";
 import MainLayout from "../layouts/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
 
+const TravelInformationOverviewPage = lazy(() => import("../pages/travel-information/TravelInformationPages").then((module) => ({ default: module.TravelInformationOverviewPage })));
+const TravelCategoryPage = lazy(() => import("../pages/travel-information/TravelInformationPages").then((module) => ({ default: module.TravelCategoryPage })));
+const TravelArticlePage = lazy(() => import("../pages/travel-information/TravelInformationPages").then((module) => ({ default: module.TravelArticlePage })));
+
+const travelPage = (page) => <Suspense fallback={<main className="travel-route-loading">Đang tải thông tin hành trình...</main>}>{page}</Suspense>;
+
 function AppRoutes() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<FlightSearchPage />} />
+        <Route path="/search" element={<Navigate to="/flight-selection" replace />} />
         <Route path="/flight-selection" element={<FlightSelectionPage />} />
+        <Route path="/cam-nang/:slug" element={<BlogArticlePage />} />
+        <Route path="/travel-information" element={travelPage(<TravelInformationOverviewPage />)} />
+        <Route path="/travel-information/:categorySlug" element={travelPage(<TravelCategoryPage />)} />
+        <Route path="/travel-information/:categorySlug/:articleSlug" element={travelPage(<TravelArticlePage />)} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
