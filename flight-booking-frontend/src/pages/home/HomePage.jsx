@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../../services/authService";
 import { publicFlightService } from "../../services/publicFlightService";
+import vietnamDestinations from "../../assets/destinations/vietnam-destinations.png";
+import internationalDestinations from "../../assets/destinations/international-destinations.png";
 import "../../styles/pages/home.css";
 import "../../styles/pages/flight-selection.css";
 
@@ -15,6 +17,69 @@ const MaterialIcon = ({ name, fill = false }) => (
     {name}
   </span>
 );
+
+const DOMESTIC_DEALS = [
+  { from: "SGN", to: "HAN", route: "TP. Hồ Chí Minh đến Hà Nội", price: "977.181", seen: "Đã xem 16 giờ trước", position: "0% 0%" },
+  { from: "HAN", to: "SGN", route: "Hà Nội đến TP. Hồ Chí Minh", price: "977.181", seen: "Đang được đặt nhiều", position: "33.333% 0%" },
+  { from: "HAN", to: "DAD", route: "Hà Nội đến Đà Nẵng", price: "847.181", seen: "Đã xem 19 phút trước", position: "66.666% 0%" },
+  { from: "SGN", to: "PQC", route: "TP. Hồ Chí Minh đến Phú Quốc", price: "815.181", seen: "Ưu đãi trong hôm nay", position: "100% 0%" },
+  { from: "HAN", to: "VDO", route: "Hà Nội đến Hạ Long", price: "729.000", seen: "12 người vừa đặt", position: "0% 100%" },
+  { from: "SGN", to: "HUI", route: "TP. Hồ Chí Minh đến Huế", price: "899.000", seen: "Giá tốt trong 48 giờ", position: "33.333% 100%" },
+  { from: "SGN", to: "DLI", route: "TP. Hồ Chí Minh đến Đà Lạt", price: "765.000", seen: "Được yêu thích tuần này", position: "66.666% 100%" },
+  { from: "HAN", to: "CXR", route: "Hà Nội đến Nha Trang", price: "935.000", seen: "18 người đang xem", position: "100% 100%" },
+];
+
+const INTERNATIONAL_DEALS = [
+  { from: "HAN", to: "NRT", route: "Hà Nội đến Tokyo", country: "Nhật Bản", price: "5.990.000", position: "0% 0%" },
+  { from: "SGN", to: "ICN", route: "TP. Hồ Chí Minh đến Seoul", country: "Hàn Quốc", price: "4.850.000", position: "33.333% 0%" },
+  { from: "SGN", to: "SIN", route: "TP. Hồ Chí Minh đến Singapore", country: "Singapore", price: "3.290.000", position: "66.666% 0%" },
+  { from: "HAN", to: "BKK", route: "Hà Nội đến Bangkok", country: "Thái Lan", price: "2.890.000", position: "100% 0%" },
+  { from: "SGN", to: "CDG", route: "TP. Hồ Chí Minh đến Paris", country: "Pháp", price: "15.900.000", position: "0% 100%" },
+  { from: "SGN", to: "SYD", route: "TP. Hồ Chí Minh đến Sydney", country: "Úc", price: "12.490.000", position: "33.333% 100%" },
+  { from: "SGN", to: "DPS", route: "TP. Hồ Chí Minh đến Bali", country: "Indonesia", price: "4.190.000", position: "66.666% 100%" },
+  { from: "HAN", to: "LHR", route: "Hà Nội đến London", country: "Anh", price: "16.800.000", position: "100% 100%" },
+];
+
+function DealCarousel({ title, eyebrow, deals, image, onBook }) {
+  const railRef = useRef(null);
+  const scroll = (direction) => {
+    const rail = railRef.current;
+    const firstCard = rail?.firstElementChild;
+    if (!rail || !firstCard) return;
+
+    const cardWidth = firstCard.getBoundingClientRect().width;
+    const gap = Number.parseFloat(window.getComputedStyle(rail).columnGap) || 0;
+    rail.scrollBy({ left: direction * (cardWidth + gap) * 4, behavior: "smooth" });
+  };
+
+  return (
+    <section className="deal-section">
+      <div className="deal-heading">
+        <div><span>{eyebrow}</span><h2>{title}</h2></div>
+        <div className="deal-controls">
+          <button type="button" onClick={() => scroll(-1)} aria-label={`Xem ${title} phía trước`}><MaterialIcon name="chevron_left" /></button>
+          <button type="button" onClick={() => scroll(1)} aria-label={`Xem thêm ${title}`}><MaterialIcon name="chevron_right" /></button>
+        </div>
+      </div>
+      <div className="deal-rail" ref={railRef}>
+        {deals.map((deal, index) => (
+          <article className="deal-card" key={`${deal.from}-${deal.to}`}>
+            <div className="deal-photo" style={{ backgroundImage: `url(${image})`, backgroundPosition: deal.position }}>
+              <span className="deal-rank">{String(index + 1).padStart(2, "0")}/{deals.length}</span>
+              {deal.country && <span className="deal-country">{deal.country}</span>}
+              <div className="deal-gradient">
+                <h3>{deal.route}</h3>
+                <div className="deal-price"><small>Từ</small><strong>{deal.price} VND*</strong><span>{deal.seen || "Khứ hồi · Economy"}</span></div>
+              </div>
+            </div>
+            <button type="button" onClick={() => onBook(deal)}>Mua ngay <MaterialIcon name="arrow_forward" /></button>
+          </article>
+        ))}
+      </div>
+      <p className="deal-note">*Giá vé tham khảo được cập nhật trong 48 giờ gần nhất và có thể thay đổi tại thời điểm đặt chỗ.</p>
+    </section>
+  );
+}
 
 const NAV_ITEMS = [
   { icon: "explore", label: "Khám Phá" },
@@ -188,6 +253,10 @@ function HomePage() {
     "Tra cứu lịch bay",
   ];
 
+  const handleBookDeal = ({ from, to }) => {
+    navigate(`/flight-selection?${new URLSearchParams({ from, to }).toString()}`);
+  };
+
   return (
     <div className="home-page">
       <main className="home-main">
@@ -359,6 +428,46 @@ function HomePage() {
                 <MaterialIcon name={s.icon} />
                 <span>{s.label}</span>
               </a>
+            ))}
+          </div>
+        </section>
+
+        <DealCarousel
+          eyebrow="Được tìm kiếm nhiều nhất"
+          title="Các chuyến bay được ưa thích nhất"
+          deals={DOMESTIC_DEALS}
+          image={vietnamDestinations}
+          onBook={handleBookDeal}
+        />
+
+        <DealCarousel
+          eyebrow="Bay xa hơn, trải nghiệm nhiều hơn"
+          title="Điểm đến quốc tế đang hot"
+          deals={INTERNATIONAL_DEALS}
+          image={internationalDestinations}
+          onBook={handleBookDeal}
+        />
+
+        <section className="travel-stories" id="travel-stories">
+          <div className="deal-heading">
+            <div><span>Cảm hứng hành trình</span><h2>Cẩm nang du lịch mới nhất</h2></div>
+            <a href="#travel-stories">Xem tất cả <MaterialIcon name="arrow_forward" /></a>
+          </div>
+          <div className="story-grid">
+            {[
+              { slug: "48-gio-kham-pha-ha-noi", tag: "Ẩm thực", title: "48 giờ ăn và khám phá Hà Nội như một người bản địa", time: "6 phút đọc", position: "0% 0%", image: vietnamDestinations },
+              { slug: "bi-quyet-san-ve-quoc-te", tag: "Kinh nghiệm", title: "Bí quyết săn vé tốt cho chuyến đi quốc tế đầu tiên", time: "8 phút đọc", position: "66.666% 0%", image: internationalDestinations },
+              { slug: "mua-hoa-anh-dao-nhat-ban", tag: "Điểm đến", title: "Mùa hoa anh đào Nhật Bản: đi đâu và vào thời điểm nào?", time: "5 phút đọc", position: "0% 0%", image: internationalDestinations },
+            ].map((story) => (
+              <article className="story-card" key={story.title}>
+                <Link to={`/cam-nang/${story.slug}`} className="story-link">
+                  <div className="story-photo" style={{ backgroundImage: `url(${story.image})`, backgroundPosition: story.position }} />
+                  <div className="story-body">
+                    <span>{story.tag}</span><h3>{story.title}</h3><p>{story.time}</p>
+                    <span className="story-read-more">Đọc bài viết <MaterialIcon name="arrow_forward" /></span>
+                  </div>
+                </Link>
+              </article>
             ))}
           </div>
         </section>

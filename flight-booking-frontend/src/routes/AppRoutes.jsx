@@ -6,7 +6,7 @@ import PaymentPage from "../pages/payment/PaymentPage";
 import PaymentProcessingPage from "../pages/payment/PaymentProcessingPage";
 import PaymentResultPage from "../pages/payment/PaymentResultPage";
 import HomePage from "../pages/home/HomePage";
-import FlightSearchPage from "../pages/search/FlightSearchPage";
+import BlogArticlePage from "../pages/blog/BlogArticlePage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import DashboardPage from "../pages/admin/dashboard/DashboardPage";
@@ -41,8 +41,9 @@ function AppRoutes() {
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<FlightSearchPage />} />
+        <Route path="/search" element={<Navigate to="/flight-selection" replace />} />
         <Route path="/flight-selection" element={<FlightSelectionPage />} />
+        <Route path="/cam-nang/:slug" element={<BlogArticlePage />} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />

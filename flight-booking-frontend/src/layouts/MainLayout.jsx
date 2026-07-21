@@ -17,7 +17,7 @@ const MaterialIcon = ({ name, fill = false }) => (
 
 const NAV_ITEMS = [
   { icon: "explore", label: "Khám Phá", to: "/" },
-  { icon: "confirmation_number", label: "Mua vé", to: "/search" },
+  { icon: "confirmation_number", label: "Mua vé", to: "/flight-selection" },
   { icon: "card_membership", label: "Dịch vụ bổ trợ", to: "#" },
   { icon: "map", label: "Hành trình", to: "#" },
   { icon: "flight_takeoff", label: "Trải nghiệm bay", to: "#" },
@@ -26,8 +26,10 @@ const NAV_ITEMS = [
 
 function MainLayout() {
   const [scrolled, setScrolled] = useState(false);
+  const [isTopBarHidden, setIsTopBarHidden] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const topBarRef = useRef(null);
+  const lastScrollYRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,17 +45,36 @@ function MainLayout() {
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 50);
+
+      const flightList = document.querySelector(".flight-selection-section");
+      const hasReachedFlightList =
+        location.pathname === "/flight-selection" &&
+        flightList &&
+        flightList.getBoundingClientRect().top <= 96;
+
+      if (!hasReachedFlightList || y < lastScrollYRef.current) {
+        setIsTopBarHidden(false);
+      } else if (y > lastScrollYRef.current) {
+        setIsTopBarHidden(true);
+      }
+
+      lastScrollYRef.current = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setIsTopBarHidden(false);
+    lastScrollYRef.current = window.scrollY;
+  }, [location.pathname]);
 
   return (
     <div className="main-app-layout">
       {/* Top Navigation */}
       <header
         ref={topBarRef}
-        className={`top-bar ${scrolled ? "top-bar-solid" : ""}`}
+        className={`top-bar ${scrolled ? "top-bar-solid" : ""}${isTopBarHidden ? " is-hidden" : ""}`}
         style={{ zIndex: 1000 }}
       >
         <div className="top-bar-left">
