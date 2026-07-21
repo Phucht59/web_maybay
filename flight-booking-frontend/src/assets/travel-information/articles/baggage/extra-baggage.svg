@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Quản lý hành lý bổ sung trên thiết bị</title><desc id="desc">Minh họa laptop hiển thị các lựa chọn hành lý và vali ở cạnh bàn.</desc>
+  <defs><linearGradient id="bg" y2="1"><stop stop-color="#f6efe1"/><stop offset="1" stop-color="#d9eeec"/></linearGradient></defs><rect width="1200" height="800" fill="url(#bg)"/>
+  <circle cx="1020" cy="130" r="145" fill="#e0b45f" opacity=".25"/><path d="M0 650c240-120 410-80 620 0s390 100 580-10v160H0z" fill="#b7d9d6"/>
+  <rect x="180" y="180" width="610" height="390" rx="28" fill="#164d5a"/><rect x="215" y="215" width="540" height="320" rx="12" fill="#f9fcfb"/>
+  <rect x="260" y="260" width="320" height="34" rx="17" fill="#7eb8b2"/><rect x="260" y="330" width="210" height="120" rx="18" fill="#e5f1ef"/><rect x="500" y="330" width="210" height="120" rx="18" fill="#f7e9ca"/><circle cx="665" cy="390" r="30" fill="#ca9136"/><path d="M650 390h30m-15-15v30" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M120 570h730l-70 68H190z" fill="#306d76"/><rect x="850" y="310" width="230" height="330" rx="45" fill="#a96e43"/><path d="M900 310v-60h130v60" fill="none" stroke="#70462f" stroke-width="22"/><path d="M910 405h110" stroke="#f0d49c" stroke-width="18" stroke-linecap="round"/>
+</svg>

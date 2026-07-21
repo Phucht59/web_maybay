@@ -1,9 +1,8 @@
 import { forwardRef, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { TRAVEL_GROUPS, travelGroupPath, travelItemPath } from "./travelInformationData";
+import { TravelIcon } from "./components/TravelVisuals";
 import "../../styles/pages/travel-information.css";
-
-const Icon = ({ name }) => <span className="material-symbols-outlined" aria-hidden="true">{name}</span>;
 
 function TravelMenuLink({ to, children, onNavigate }) {
   const location = useLocation();
@@ -12,16 +11,15 @@ function TravelMenuLink({ to, children, onNavigate }) {
 }
 
 function TravelMenuGroup({ group, onNavigate }) {
-  return (
-    <section className="travel-menu-group">
-      <Link className="travel-menu-group-title" to={travelGroupPath(group)} onClick={onNavigate}>
-        <Icon name={group.icon} /><span>{group.title}</span><Icon name="arrow_forward" />
-      </Link>
-      <div className="travel-menu-links">
-        {group.items.map((entry) => <TravelMenuLink key={entry.slug} to={travelItemPath(group, entry)} onNavigate={onNavigate}>{entry.title}</TravelMenuLink>)}
-      </div>
-    </section>
-  );
+  const location = useLocation();
+  const groupPath = travelGroupPath(group);
+  const active = location.pathname === groupPath;
+  return <section className="travel-menu-group">
+    <Link className="travel-menu-group-title" to={groupPath} onClick={onNavigate} aria-current={active ? "page" : undefined}>
+      <TravelIcon name={group.icon} /><span>{group.title}</span><TravelIcon name="arrow_forward" />
+    </Link>
+    <div className="travel-menu-links">{group.items.map((entry) => <TravelMenuLink key={entry.slug} to={travelItemPath(group, entry)} onNavigate={onNavigate}>{entry.title}</TravelMenuLink>)}</div>
+  </section>;
 }
 
 const TravelInformationMenu = forwardRef(function TravelInformationMenu({ open, onClose, triggerRef }, ref) {
@@ -34,7 +32,7 @@ const TravelInformationMenu = forwardRef(function TravelInformationMenu({ open, 
     const onKeyDown = (event) => {
       if (event.key === "Escape") onClose();
       if (event.key === "Tab" && ref?.current) {
-        const focusable = [...ref.current.querySelectorAll('a[href], button:not([disabled])')];
+        const focusable = [...ref.current.querySelectorAll("a[href], button:not([disabled])")];
         if (!focusable.length) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
@@ -44,23 +42,18 @@ const TravelInformationMenu = forwardRef(function TravelInformationMenu({ open, 
     };
     document.addEventListener("keydown", onKeyDown);
     closeRef.current?.focus();
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      returnFocus?.focus?.();
-    };
+    return () => { document.removeEventListener("keydown", onKeyDown); returnFocus?.focus?.(); };
   }, [open, onClose, ref, triggerRef]);
 
   if (!open) return null;
-  return (
-    <>
-      <button className="travel-menu-backdrop" type="button" aria-label="Đóng menu Hành trình" onClick={onClose} />
-      <aside ref={ref} id="travel-information-menu" className="travel-information-menu" aria-label="Thông tin hành trình">
-        <header><div><span>Chuẩn bị chuyến đi</span><h2>Hành trình</h2></div><button ref={closeRef} type="button" onClick={onClose} aria-label="Đóng menu Hành trình"><Icon name="close" /></button></header>
-        <Link className="travel-menu-overview" to="/travel-information" onClick={onClose}>Xem tổng quan thông tin hành trình <Icon name="arrow_forward" /></Link>
-        <div className="travel-menu-scroll">{TRAVEL_GROUPS.map((group) => <TravelMenuGroup key={group.slug} group={group} onNavigate={onClose} />)}</div>
-      </aside>
-    </>
-  );
+  return <>
+    <button className="travel-menu-backdrop" type="button" aria-label="Đóng menu Hành trình" onClick={onClose} />
+    <aside ref={ref} id="travel-information-menu" className="travel-information-menu" aria-label="Thông tin hành trình">
+      <header><div><span>Chuẩn bị chuyến đi</span><h2>Hành trình</h2></div><button ref={closeRef} type="button" onClick={onClose} aria-label="Đóng menu Hành trình"><TravelIcon name="close" /></button></header>
+      <Link className="travel-menu-overview" to="/travel-information" onClick={onClose}>Xem tổng quan thông tin hành trình <TravelIcon name="arrow_forward" /></Link>
+      <div className="travel-menu-scroll">{TRAVEL_GROUPS.map((group) => <TravelMenuGroup key={group.slug} group={group} onNavigate={onClose} />)}</div>
+    </aside>
+  </>;
 });
 
 export default TravelInformationMenu;
