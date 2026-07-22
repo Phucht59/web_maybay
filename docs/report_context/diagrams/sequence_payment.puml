@@ -1,0 +1,30 @@
+@startuml
+actor Customer
+participant "Frontend" as FE
+participant "PaymentsController" as API
+participant "PaymentFinalizationService" as Service
+database "SQLite" as DB
+
+Customer -> FE: Nhấn "Thanh toán"
+FE -> FE: Tạo UUID IdempotencyKey
+FE -> API: POST /payments/process (BookingId, IdempotencyKey)
+API -> Service: ProcessPayment(BookingId, IdempotencyKey)
+Service -> DB: BeginTransactionAsync()
+Service -> DB: Check IdempotencyKey
+alt Key đã tồn tại
+    DB --> Service: Payment found
+    Service --> API: Return Existing Payment Result
+else Key chưa tồn tại
+    Service -> Service: Call Payment Gateway (Simulated)
+    Service -> DB: Insert ThanhToan (Completed)
+    Service -> DB: Update PhieuDatCho (Confirmed)
+    Service -> DB: Update GheChuyenBay (Booked)
+    loop For each Passenger + Seat
+        Service -> DB: Insert Ve (Issued)
+    end
+    Service -> DB: CommitTransactionAsync()
+    Service --> API: Return Success Result
+end
+API --> FE: 200 OK
+FE -> Customer: Hiển thị Thành công + PNR
+@enduml

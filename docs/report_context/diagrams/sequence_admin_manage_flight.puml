@@ -1,0 +1,22 @@
+@startuml
+actor Admin
+participant "Frontend (Admin)" as FE
+participant "ChuyenBayController" as API
+database "SQLite" as DB
+
+Admin -> FE: Điền form tạo Chuyến bay
+FE -> API: POST /api/chuyenbay
+API -> DB: Query LoTrinh, MayBay
+API -> API: Calculate Arrival Time, Prices
+API -> DB: Insert ChuyenBay
+DB --> API: Lấy MaChuyenBay mới
+API -> DB: Query toàn bộ GheMayBay của MayBay tương ứng
+DB --> API: List<GheMayBay>
+loop For each GheMayBay
+    API -> API: Tạo GheChuyenBay (Available)
+end
+API -> DB: Insert danh sách GheChuyenBay
+DB --> API: Success
+API --> FE: 201 Created
+FE -> Admin: Hiển thị thông báo thành công
+@enduml

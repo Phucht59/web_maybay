@@ -1,0 +1,93 @@
+erDiagram
+    %% Core Entities
+    TaiKhoan {
+        int MaTaiKhoan PK
+        string Email
+        string HoTen
+        string VaiTro
+    }
+    SanBay {
+        int MaSanBay PK
+        string TenSanBay
+        string MaIATA
+    }
+    HangBay {
+        int MaHangBay PK
+        string TenHangBay
+    }
+    LoTrinh {
+        int MaLoTrinh PK
+        int MaSanBayDi FK
+        int MaSanBayDen FK
+    }
+    MayBay {
+        int MaMayBay PK
+        int MaHangBay FK
+        string SoHieuDangKy
+    }
+    HangGhe {
+        int MaHangGhe PK
+        string TenHangGhe
+        float HeSoGia
+    }
+    GheMayBay {
+        int MaGheMayBay PK
+        int MaMayBay FK
+        int MaHangGhe FK
+        string SoGhe
+    }
+    ChuyenBay {
+        int MaChuyenBay PK
+        int MaLoTrinh FK
+        int MaMayBay FK
+        datetime GioKhoiHanh
+        decimal GiaCoBan
+    }
+    GheChuyenBay {
+        int MaGheChuyenBay PK
+        int MaChuyenBay FK
+        int MaGheMayBay FK
+        string TrangThaiGhe
+        int PhienBan
+        string SessionId
+    }
+    PhieuDatCho {
+        int MaPhieuDatCho PK
+        int MaTaiKhoan FK
+        string MaDatCho
+        string TrangThai
+    }
+    HanhKhach {
+        int MaHanhKhach PK
+        int MaPhieuDatCho FK
+        string HoTen
+    }
+    Ve {
+        int MaVe PK
+        int MaPhieuDatCho FK
+        int MaGheChuyenBay FK
+        int MaHanhKhach FK
+    }
+    ThanhToan {
+        int MaThanhToan PK
+        int MaPhieuDatCho FK
+        string IdempotencyKey
+        string TrangThai
+    }
+
+    %% Relationships
+    TaiKhoan ||--o{ PhieuDatCho : creates
+    SanBay ||--o{ LoTrinh : has_departure
+    SanBay ||--o{ LoTrinh : has_arrival
+    HangBay ||--o{ MayBay : owns
+    MayBay ||--o{ GheMayBay : configures
+    HangGhe ||--o{ GheMayBay : defines
+    LoTrinh ||--o{ ChuyenBay : schedules
+    MayBay ||--o{ ChuyenBay : operates
+    ChuyenBay ||--o{ GheChuyenBay : contains
+    GheMayBay ||--o{ GheChuyenBay : maps_to
+    PhieuDatCho ||--o{ HanhKhach : includes
+    PhieuDatCho ||--o{ Ve : issues
+    PhieuDatCho ||--o| ThanhToan : paid_by
+    HanhKhach ||--|| Ve : owns
+    GheChuyenBay ||--|| Ve : assigned_to

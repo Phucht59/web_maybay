@@ -1,0 +1,22 @@
+@startuml
+actor Customer
+participant "Frontend" as FE
+participant "BookingCheckoutController" as API
+participant "CheckoutCreationService" as Service
+database "SQLite" as DB
+
+Customer -> FE: Nhập tên hành khách, chọn hành lý
+Customer -> FE: Bấm "Tiếp tục"
+FE -> API: POST /checkout/create (Passengers, Services)
+API -> Service: CreateCheckoutAsync(dto)
+Service -> DB: BeginTransactionAsync()
+Service -> DB: Query GheChuyenBay (Check if Held by this Session)
+DB --> Service: Valid seats
+Service -> DB: Insert PhieuDatCho (Holding, PNR)
+Service -> DB: Insert HanhKhach, ChiTietDichVu
+Service -> DB: Cập nhật GheChuyenBay.MaPhieuDatChoDangGiu
+Service -> DB: CommitTransactionAsync()
+Service --> API: Result (BookingId)
+API --> FE: 200 OK (BookingId)
+FE -> Customer: Chuyển sang màn hình Thanh toán
+@enduml

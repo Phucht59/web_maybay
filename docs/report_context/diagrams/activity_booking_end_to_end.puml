@@ -1,0 +1,64 @@
+@startuml
+|Customer|
+start
+:Nhập Sân bay Đi, Đến, Ngày;
+:Bấm Tìm kiếm;
+|Frontend SPA|
+:Gọi API `GET /api/public/flights/search`;
+|Backend API|
+:Query `ChuyenBay`, `LoTrinh`;
+:Trả về danh sách chuyến bay;
+|Frontend SPA|
+:Hiển thị danh sách;
+|Customer|
+:Chọn 1 chuyến bay;
+:Chuyển sang màn hình Sơ đồ ghế;
+|Frontend SPA|
+:Gọi API `GET /seats`;
+|Backend API|
+:Release các ghế hết hạn giữ (Lazy);
+:Lấy trạng thái ghế;
+|Frontend SPA|
+:Hiển thị ghế (Trắng/Vàng/Xám);
+|Customer|
+:Click ghế trống;
+|Frontend SPA|
+:Gọi API Hold Seat (SessionId);
+|Backend API|
+if (Trạng thái ghế == Available?) then (Yes)
+  :Cập nhật Trạng thái = Held;
+  :Tăng `PhienBan`;
+  :Lưu DB (EF Core);
+  if (Lỗi Concurrency?) then (Có)
+    |Frontend SPA|
+    :Báo lỗi "Ghế đã có người chọn";
+  else (Không)
+    |Frontend SPA|
+    :Đổi màu ghế sang Vàng;
+  endif
+else (No)
+  |Frontend SPA|
+  :Báo lỗi "Ghế đã có người chọn";
+endif
+|Customer|
+:Bấm Tiếp tục;
+|Frontend SPA|
+:Hiển thị Form nhập Hành khách;
+|Customer|
+:Nhập Họ tên, CCCD;
+:Bấm Thanh toán (Tạo Checkout);
+|Backend API|
+:Transaction: Tạo `PhieuDatCho`, `HanhKhach`;
+:Trả về `BookingId`;
+|Frontend SPA|
+:Chuyển sang màn Thanh toán;
+|Customer|
+:Xác nhận thanh toán;
+|Backend API|
+:Kiểm tra `IdempotencyKey`;
+:Trừ tiền;
+:Cấp vé, đổi ghế sang Booked;
+|Frontend SPA|
+:Hiển thị Vé thành công;
+stop
+@enduml

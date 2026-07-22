@@ -1,0 +1,39 @@
+erDiagram
+    ChuyenBay {
+        int MaChuyenBay PK
+        datetime GioKhoiHanh
+        decimal GiaCoBan
+        string TrangThai
+    }
+    GheChuyenBay {
+        int MaGheChuyenBay PK
+        int MaChuyenBay FK
+        string TrangThaiGhe "Available/Held/Booked"
+        datetime GiuDenLuc
+        int PhienBan "Concurrency Token"
+        int MaPhieuDatChoDangGiu FK
+    }
+    PhieuDatCho {
+        int MaPhieuDatCho PK
+        string MaDatCho "PNR Code"
+        string TrangThai "Holding/Confirmed"
+        decimal TongTien
+    }
+    HanhKhach {
+        int MaHanhKhach PK
+        int MaPhieuDatCho FK
+        string HoTen
+    }
+    Ve {
+        int MaVe PK
+        int MaPhieuDatCho FK
+        int MaGheChuyenBay FK
+        int MaHanhKhach FK
+    }
+
+    ChuyenBay ||--o{ GheChuyenBay : "1 chuyến bay có nhiều ghế"
+    PhieuDatCho ||--o{ GheChuyenBay : "1 phiếu giữ nhiều ghế"
+    PhieuDatCho ||--o{ HanhKhach : "1 phiếu có nhiều khách"
+    PhieuDatCho ||--o{ Ve : "1 phiếu xuất nhiều vé"
+    HanhKhach ||--|| Ve : "1 khách cầm 1 vé"
+    GheChuyenBay ||--|| Ve : "1 ghế có 1 vé"

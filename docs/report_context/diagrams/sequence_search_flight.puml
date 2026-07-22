@@ -1,0 +1,14 @@
+@startuml
+actor Customer
+participant "Frontend (React)" as FE
+participant "API PublicController" as API
+database "SQLite" as DB
+
+Customer -> FE: Nhập điểm đi, điểm đến, ngày
+Customer -> FE: Nhấn "Tìm kiếm"
+FE -> API: GET /api/public/flights/search?departure=...
+API -> DB: Query LoTrinh, ChuyenBay (Ngày, Sân bay)
+DB --> API: Trả về danh sách Entity
+API -> FE: Trả về danh sách DTO (Chuyến bay, Giá, Hãng)
+FE -> Customer: Render danh sách kết quả
+@enduml

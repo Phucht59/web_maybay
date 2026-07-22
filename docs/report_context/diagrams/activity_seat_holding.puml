@@ -1,0 +1,30 @@
+@startuml
+|Customer|
+start
+:Nhấn chọn ghế trống;
+|Frontend|
+:Tạo SessionId;
+:POST /seats/{id}/hold;
+|Backend (EF Core)|
+:ReleaseExpiredSeats();
+:Query `GheChuyenBay`;
+if (Trạng thái == Available?) then (Đúng)
+  :Set TrangThai = Held;
+  :Gán SessionId;
+  :Set GiuDenLuc = Now + 30m;
+  :PhienBan = PhienBan + 1;
+  :Lưu DB (SaveChanges);
+  if (Bị ghi đè bởi Thread khác?) then (DbUpdateConcurrencyException)
+    :Rollback;
+    |Frontend|
+    :Hiển thị lỗi "Ghế đã bị chọn";
+  else (Thành công)
+    |Frontend|
+    :Đổi màu ghế sang Vàng;
+  endif
+else (Sai)
+  |Frontend|
+  :Hiển thị lỗi "Ghế đã bị chọn";
+endif
+stop
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+left to right direction
+actor "Khách hàng" as Customer
+actor "Admin" as Admin
+
+rectangle "Hệ thống Đặt Vé Máy Bay" {
+  usecase "Tra cứu chuyến bay" as UC1
+  usecase "Giữ ghế (Hold Seat)" as UC2
+  usecase "Đặt vé (Checkout)" as UC3
+  usecase "Thanh toán (Payment)" as UC4
+  usecase "Đăng nhập/Đăng ký" as UC5
+  
+  usecase "Quản lý Chuyến bay" as UC6
+  usecase "Quản lý Danh mục (Sân bay...)" as UC7
+  usecase "Xem Dashboard" as UC8
+}
+
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC5
+
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+Admin --> UC8
+
+UC2 .> UC5 : <<include>>
+UC3 .> UC2 : <<include>>
+UC4 .> UC3 : <<include>>
+@enduml
