@@ -37,9 +37,15 @@ namespace FlightBookingSystem.Web.Controllers
             if (emailExists)
                 ModelState.AddModelError(nameof(request.Email), "Email này đã được đăng ký.");
 
-            bool phoneExists = await _db.TaiKhoans.AnyAsync(t => t.SoDienThoai == request.SoDienThoai);
-            if (phoneExists)
-                ModelState.AddModelError(nameof(request.SoDienThoai), "Số điện thoại này đã được đăng ký.");
+            var phone = string.IsNullOrWhiteSpace(request.SoDienThoai)
+                ? null
+                : request.SoDienThoai.Trim();
+            if (phone is not null)
+            {
+                bool phoneExists = await _db.TaiKhoans.AnyAsync(t => t.SoDienThoai == phone);
+                if (phoneExists)
+                    ModelState.AddModelError(nameof(request.SoDienThoai), "Số điện thoại này đã được đăng ký.");
+            }
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -48,7 +54,7 @@ namespace FlightBookingSystem.Web.Controllers
             {
                 Email = request.Email.Trim(),
                 HoTen = request.HoTen.Trim(),
-                SoDienThoai = request.SoDienThoai.Trim(),
+                SoDienThoai = phone,
                 VaiTro = "Customer",
                 TrangThai = "Active",
                 NgayTao = DateTime.UtcNow
@@ -107,6 +113,7 @@ namespace FlightBookingSystem.Web.Controllers
                 MaTaiKhoan = taiKhoan.MaTaiKhoan,
                 HoTen = taiKhoan.HoTen,
                 Email = taiKhoan.Email,
+                SoDienThoai = taiKhoan.SoDienThoai ?? string.Empty,
                 VaiTro = taiKhoan.VaiTro
             };
         }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Hành lý thể thao và nhạc cụ</title><desc id="desc">Minh họa đàn guitar, ván thể thao và túi dụng cụ được bảo vệ.</desc>
+  <defs><linearGradient id="bg" x2="1"><stop stop-color="#164f5c"/><stop offset="1" stop-color="#0c7480"/></linearGradient><pattern id="line" width="50" height="50" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><path d="M0 0v50" stroke="#fff" opacity=".08" stroke-width="10"/></pattern></defs>
+  <rect width="1200" height="800" fill="url(#bg)"/><rect width="1200" height="800" fill="url(#line)"/><circle cx="260" cy="630" r="120" fill="#e0ae55"/><path d="M260 150c-65 0-92 63-68 140l55 177c12 40-4 67-50 87-72 31-87 118-32 164 54 45 146 27 167-44 14-46-2-78-47-111-38-28-47-56-33-94l68-181c28-75 2-138-60-138z" fill="#f5e4bd"/><circle cx="250" cy="620" r="45" fill="#9b613b"/><path d="M260 158l155-83" stroke="#f5e4bd" stroke-width="34" stroke-linecap="round"/>
+  <rect x="540" y="150" width="120" height="500" rx="60" fill="#95cbc4" transform="rotate(-12 600 400)"/><path d="M575 170l95 455" stroke="#eff9f7" stroke-width="10" opacity=".65"/>
+  <rect x="760" y="260" width="270" height="310" rx="50" fill="#df8f63"/><path d="M830 260v-65h130v65" fill="none" stroke="#f9d9c5" stroke-width="25"/><rect x="810" y="350" width="170" height="50" rx="25" fill="#f6d69c"/>
+</svg>

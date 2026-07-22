@@ -59,6 +59,9 @@ namespace FlightBookingSystem.Web.Migrations
                     b.Property<int>("MaDichVu")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("MaHanhKhach")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("MaPhieuDatCho")
                         .HasColumnType("INTEGER");
 
@@ -71,6 +74,9 @@ namespace FlightBookingSystem.Web.Migrations
                     b.HasKey("MaChiTietDichVu");
 
                     b.HasIndex("MaDichVu");
+
+                    b.HasIndex("MaHanhKhach")
+                        .HasDatabaseName("IX_ChiTietDichVu_HanhKhach");
 
                     b.HasIndex("MaVe");
 
@@ -517,7 +523,17 @@ namespace FlightBookingSystem.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("EmailLienHe")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("GiuDenLuc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HoTenLienHe")
+                        .IsRequired()
+                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LoaiChuyenDi")
@@ -540,6 +556,11 @@ namespace FlightBookingSystem.Web.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("NgayTao")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SoDienThoaiLienHe")
+                        .IsRequired()
+                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SoLuongHanhKhach")
@@ -617,7 +638,6 @@ namespace FlightBookingSystem.Web.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SoDienThoai")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
@@ -730,7 +750,6 @@ namespace FlightBookingSystem.Web.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SoVeDienTu")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
@@ -752,7 +771,8 @@ namespace FlightBookingSystem.Web.Migrations
                         .HasDatabaseName("IX_Ve_PhieuDatCho");
 
                     b.HasIndex("SoVeDienTu")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("SoVeDienTu IS NOT NULL");
 
                     b.HasIndex("MaChangDatCho", "MaHanhKhach")
                         .IsUnique();
@@ -787,6 +807,11 @@ namespace FlightBookingSystem.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("FlightBookingSystem.Web.Models.HanhKhach", "HanhKhach")
+                        .WithMany("ChiTietDichVus")
+                        .HasForeignKey("MaHanhKhach")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("FlightBookingSystem.Web.Models.PhieuDatCho", "PhieuDatCho")
                         .WithMany("ChiTietDichVus")
                         .HasForeignKey("MaPhieuDatCho")
@@ -799,6 +824,8 @@ namespace FlightBookingSystem.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DichVuThem");
+
+                    b.Navigation("HanhKhach");
 
                     b.Navigation("PhieuDatCho");
 
@@ -1031,6 +1058,8 @@ namespace FlightBookingSystem.Web.Migrations
 
             modelBuilder.Entity("FlightBookingSystem.Web.Models.HanhKhach", b =>
                 {
+                    b.Navigation("ChiTietDichVus");
+
                     b.Navigation("Ves");
                 });
 

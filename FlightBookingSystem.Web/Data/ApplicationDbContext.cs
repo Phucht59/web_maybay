@@ -130,6 +130,18 @@ namespace FlightBookingSystem.Web.Data
             modelBuilder.Entity<PhieuDatCho>().HasIndex(e => e.MaTaiKhoan).HasDatabaseName("IX_PhieuDatCho_TaiKhoan");
             modelBuilder.Entity<PhieuDatCho>().HasIndex(e => new { e.TrangThai, e.GiuDenLuc }).HasDatabaseName("IX_PhieuDatCho_HetHan");
             modelBuilder.Entity<PhieuDatCho>()
+                .Property(e => e.HoTenLienHe)
+                .IsRequired()
+                .HasMaxLength(160);
+            modelBuilder.Entity<PhieuDatCho>()
+                .Property(e => e.EmailLienHe)
+                .IsRequired()
+                .HasMaxLength(254);
+            modelBuilder.Entity<PhieuDatCho>()
+                .Property(e => e.SoDienThoaiLienHe)
+                .IsRequired()
+                .HasMaxLength(40);
+            modelBuilder.Entity<PhieuDatCho>()
                 .HasOne(p => p.TaiKhoan)
                 .WithMany(t => t.PhieuDatChos)
                 .HasForeignKey(p => p.MaTaiKhoan)
@@ -150,7 +162,10 @@ namespace FlightBookingSystem.Web.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Ve>().HasKey(e => e.MaVe);
-            modelBuilder.Entity<Ve>().HasIndex(e => e.SoVeDienTu).IsUnique();
+            modelBuilder.Entity<Ve>()
+                .HasIndex(e => e.SoVeDienTu)
+                .IsUnique()
+                .HasFilter("SoVeDienTu IS NOT NULL");
             modelBuilder.Entity<Ve>().HasIndex(e => new { e.MaChangDatCho, e.MaHanhKhach }).IsUnique();
             modelBuilder.Entity<Ve>().HasIndex(e => e.MaGheChuyenBay)
                 .IsUnique()
@@ -207,6 +222,9 @@ namespace FlightBookingSystem.Web.Data
             modelBuilder.Entity<ChiTietDichVu>().HasKey(e => e.MaChiTietDichVu);
             modelBuilder.Entity<ChiTietDichVu>().HasIndex(e => new { e.MaPhieuDatCho, e.MaVe, e.MaDichVu });
             modelBuilder.Entity<ChiTietDichVu>()
+                .HasIndex(c => c.MaHanhKhach)
+                .HasDatabaseName("IX_ChiTietDichVu_HanhKhach");
+            modelBuilder.Entity<ChiTietDichVu>()
                 .HasOne(c => c.PhieuDatCho)
                 .WithMany(p => p.ChiTietDichVus)
                 .HasForeignKey(c => c.MaPhieuDatCho)
@@ -215,6 +233,11 @@ namespace FlightBookingSystem.Web.Data
                 .HasOne(c => c.Ve)
                 .WithMany(v => v.ChiTietDichVus)
                 .HasForeignKey(c => c.MaVe)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<ChiTietDichVu>()
+                .HasOne(c => c.HanhKhach)
+                .WithMany(h => h.ChiTietDichVus)
+                .HasForeignKey(c => c.MaHanhKhach)
                 .OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<ChiTietDichVu>()
                 .HasOne(c => c.DichVuThem)

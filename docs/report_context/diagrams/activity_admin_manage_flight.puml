@@ -1,0 +1,23 @@
+@startuml
+|Admin|
+start
+:Mở Quản lý Chuyến bay;
+:Bấm Thêm mới;
+|Frontend|
+:Hiển thị form nhập liệu;
+|Admin|
+:Chọn Lộ trình, Máy bay;
+:Nhập ngày giờ bay;
+:Bấm Lưu;
+|Frontend|
+:POST /api/chuyenbay;
+|Backend (ChuyenBayController)|
+:Tạo Entity `ChuyenBay`;
+:Lấy cấu hình ghế `GheMayBay` của `MayBay`;
+:Sinh các record `GheChuyenBay` (Available);
+:Lưu vào Database;
+|Frontend|
+:Thông báo Thành công;
+|Admin|
+stop
+@enduml

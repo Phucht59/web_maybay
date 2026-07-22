@@ -1,0 +1,38 @@
+diff --git a/flight-booking-frontend/src/styles/pages/booking-seat.css b/flight-booking-frontend/src/styles/pages/booking-seat.css
+index 8588..8900 100644
+--- a/flight-booking-frontend/src/styles/pages/booking-seat.css
++++ b/flight-booking-frontend/src/styles/pages/booking-seat.css
+@@ -481,3 +481,25 @@
+ .btn-close-modal:hover {
+   color: #475569;
+ }
++
++/* Responsive Design for Mobile and Tablet Layout Overflows */
++@media (max-width: 1024px) {
++  .booking-main-grid {
++    grid-template-columns: 1fr;
++  }
++
++  .booking-legend {
++    order: 1;
++  }
++
++  .booking-aircraft-container {
++    order: 2;
++  }
++
++  .booking-summary {
++    order: 3;
++  }
++
++  .booking-header-card {
++    flex-direction: column;
++    align-items: flex-start;
++    gap: 16px;
++  }
++
++  .bh-details {
++    flex-direction: column;
++    gap: 12px;
++  }
++}

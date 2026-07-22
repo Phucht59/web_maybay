@@ -4,15 +4,6 @@ import { authService } from "../../services/authService";
 import { publicFlightService } from "../../services/publicFlightService";
 import "../../styles/pages/flight-selection.css";
 
-const SIDEBAR_ITEMS = [
-  { icon: "explore", label: "Discovery" },
-  { icon: "confirmation_number", label: "Buy Tickets", active: true },
-  { icon: "card_membership", label: "Services" },
-  { icon: "map", label: "Journey" },
-  { icon: "flight_takeoff", label: "Experience" },
-  { icon: "star", label: "Lotusmiles" },
-];
-
 const DEPARTURE_WINDOWS = [
   { key: "morning", label: "Morning", range: "00:00 - 12:00", start: 0, end: 12 },
   { key: "afternoon", label: "Afternoon", range: "12:00 - 24:00", start: 12, end: 24 },
@@ -22,6 +13,14 @@ const TRIP_TYPES = [
   { key: "oneway", label: "Một chiều" },
   { key: "roundtrip", label: "Khứ hồi" },
 ];
+
+const FARE_TYPES = [
+  { key: "economy", label: "Economy" },
+  { key: "business", label: "Business" },
+  { key: "first class", label: "First Class" },
+];
+
+const FLIGHTS_PER_PAGE = 15;
 
 function MaterialIcon({ name, fill = false }) {
   return (
@@ -118,6 +117,7 @@ function normalizeSeatLabel(value) {
   if (["economy", "phổ thông", "pho thong"].includes(normalized)) return "Economy";
   if (["premium", "phổ thông đặc biệt", "pho thong dac biet"].includes(normalized)) return "Premium";
   if (["business", "thương gia", "thuong gia"].includes(normalized)) return "Business";
+  if (["first class", "first", "hạng nhất", "hang nhat"].includes(normalized)) return "First Class";
   return value || "Fare";
 }
 
@@ -181,6 +181,7 @@ function EmptyState({ title, subtitle, error = false }) {
 function FlightListSection({
   title,
   flights,
+  totalCount,
   loading,
   error,
   emptyMessage,
@@ -190,7 +191,7 @@ function FlightListSection({
     <section className="flight-selection-section">
       <div className="flight-selection-section-header">
         <h3>{title}</h3>
-        <span>{flights.length} chuyến bay</span>
+        <span>{totalCount ?? flights.length} chuyến bay</span>
       </div>
 
       {loading && (
@@ -212,6 +213,10 @@ function FlightListSection({
         !error &&
         flights.map((flight) => {
           const seatClasses = getSeatClasses(flight);
+          const fareSlots = FARE_TYPES.map((fareType) => ({
+            ...fareType,
+            fare: seatClasses.find((seatClass) => seatClass.key === fareType.key) || null,
+          }));
           const soldOut = Number(flight.gheConTrong || 0) <= 0;
           const delayed = String(flight.trangThai || "").toLowerCase().includes("delay");
 
@@ -268,28 +273,39 @@ function FlightListSection({
 
               </div>
 
-              <div
-                className={`flight-selection-fares ${
-                  seatClasses.length === 1 ? "cols-1" : seatClasses.length === 2 ? "cols-2" : "cols-3"
-                }`}
-              >
-                {seatClasses.map((seatClass) => {
-                  const featured = seatClass.key === "business" || seatClass.key === "premium";
+              <div className="flight-selection-fares cols-3">
+                {fareSlots.map(({ key, label, fare }) => {
+                  const unavailable = !fare;
+                  const disabled = unavailable || soldOut;
+                  const featured = key === "business";
 
                   return (
                     <button
-                      key={`${flight.maChuyenBay}-${seatClass.key}`}
+                      key={`${flight.maChuyenBay}-${key}`}
                       type="button"
                       className={`flight-selection-fare-card${featured ? " is-featured" : ""}${
-                        soldOut ? " is-disabled" : ""
+                        disabled ? " is-disabled" : ""
+                      }${
+                        unavailable ? " is-unavailable" : ""
                       }`}
-                      onClick={() => !soldOut && onSelectFlight(flight, seatClass.key)}
-                      disabled={soldOut}
+                      onClick={() => !disabled && onSelectFlight(flight, key)}
+                      disabled={disabled}
+                      aria-label={unavailable ? `${label}: Không có loại vé này` : undefined}
                     >
-                      <span className="flight-selection-fare-label">{seatClass.label}</span>
-                      <strong>{soldOut ? "Sold Out" : formatCompactPrice(seatClass.price)}</strong>
-                      <small>{soldOut ? "No seats remaining" : "VND / person"}</small>
-                      <em>{soldOut ? "N/A" : "Select"}</em>
+                      <span className="flight-selection-fare-label">{label}</span>
+                      {unavailable ? (
+                        <>
+                          <span className="flight-selection-fare-unavailable-icon" aria-hidden="true">×</span>
+                          <small>Không có loại vé này</small>
+                          <em>Không khả dụng</em>
+                        </>
+                      ) : (
+                        <>
+                          <strong>{soldOut ? "Sold Out" : formatCompactPrice(fare.price)}</strong>
+                          <small>{soldOut ? "No seats remaining" : "VND / person"}</small>
+                          <em>{soldOut ? "N/A" : "Select"}</em>
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -329,18 +345,32 @@ export default function FlightSelectionPage() {
   const [departureFilters, setDepartureFilters] = useState([]);
   const [maxAllowedPrice, setMaxAllowedPrice] = useState(0);
   const [selectedMaxPrice, setSelectedMaxPrice] = useState(0);
+  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setSelectedDate(dateParam);
   }, [dateParam]);
 
   useEffect(() => {
-    if (!fromCode && !toCode) {
-      setOutboundFlights([]);
-      setOutboundLoading(false);
-      return;
-    }
+    const nextTripType = searchParams.get("tripType") || "oneway";
+    const nextReturnDate =
+      searchParams.get("returnDate") || (dateParam ? addDays(dateParam, 3) : "");
 
+    setTripType(nextTripType);
+    setReturnDate(nextReturnDate);
+  }, [searchParams, dateParam]);
+
+  useEffect(() => {
+    setSelectedAirlines([]);
+    setSelectedSeatClasses([]);
+    setDepartureFilters([]);
+    setSelectedMaxPrice(0);
+    setIsPriceFilterActive(false);
+    setCurrentPage(1);
+  }, [fromCode, toCode]);
+
+  useEffect(() => {
     let active = true;
     setOutboundLoading(true);
     setOutboundError("");
@@ -407,11 +437,6 @@ export default function FlightSelectionPage() {
   }, [tripType, fromCode, toCode, returnDate]);
 
   useEffect(() => {
-    if (!fromCode && !toCode) {
-      setDatePrices({});
-      return;
-    }
-
     let active = true;
     if (!selectedDate) {
       const grouped = outboundFlights.reduce((accumulator, flight) => {
@@ -486,8 +511,10 @@ export default function FlightSelectionPage() {
   useEffect(() => {
     const { max } = getPriceBounds(allFlights);
     setMaxAllowedPrice(max);
-    setSelectedMaxPrice((current) => (current && current <= max ? current : max));
-  }, [allFlights]);
+    setSelectedMaxPrice((current) =>
+      isPriceFilterActive && current && current <= max ? current : max
+    );
+  }, [allFlights, isPriceFilterActive]);
 
   const applyFilters = (flights) =>
     flights.filter((flight) => {
@@ -495,13 +522,28 @@ export default function FlightSelectionPage() {
       const airlineMatched = !selectedAirlines.length || selectedAirlines.includes(flight.hangBay);
       const departureMatched = matchesDepartureFilter(flight, departureFilters);
       const seatMatched = matchesSeatClassFilter(flight, selectedSeatClasses);
-      const priceMatched = !selectedMaxPrice || lowestPrice <= selectedMaxPrice;
+      const priceMatched = !isPriceFilterActive || lowestPrice <= selectedMaxPrice;
       return airlineMatched && departureMatched && seatMatched && priceMatched;
     });
 
-  const filteredOutboundFlights = applyFilters(outboundFlights);
+  const filteredOutboundFlights = applyFilters(outboundFlights).sort(
+    (left, right) => getLowestPrice(left) - getLowestPrice(right)
+  );
   const filteredReturnFlights = applyFilters(returnFlights);
   const totalFlightsFound = filteredOutboundFlights.length + (tripType === "roundtrip" ? filteredReturnFlights.length : 0);
+  const totalOutboundPages = Math.max(1, Math.ceil(filteredOutboundFlights.length / FLIGHTS_PER_PAGE));
+  const paginatedOutboundFlights = filteredOutboundFlights.slice(
+    (currentPage - 1) * FLIGHTS_PER_PAGE,
+    currentPage * FLIGHTS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [fromCode, toCode, selectedDate, selectedAirlines, selectedSeatClasses, departureFilters, selectedMaxPrice]);
+
+  useEffect(() => {
+    if (currentPage > totalOutboundPages) setCurrentPage(totalOutboundPages);
+  }, [currentPage, totalOutboundPages]);
 
   const dateOptions = selectedDate
     ? Array.from({ length: 5 }, (_, index) => {
@@ -512,14 +554,25 @@ export default function FlightSelectionPage() {
           ...datePrices[date],
         };
       })
-    : Object.keys(datePrices)
-        .sort((left, right) => new Date(left) - new Date(right))
-        .slice(0, 7)
-        .map((date) => ({
-          date,
-          label: formatShortDate(date),
-          ...datePrices[date],
-        }));
+    : (() => {
+        const datesWithFlights = Object.keys(datePrices);
+        if (!datesWithFlights.length) return [];
+
+        const cheapestDate = datesWithFlights.reduce((bestDate, date) => {
+          const bestPrice = datePrices[bestDate]?.minPrice || Infinity;
+          const currentPrice = datePrices[date]?.minPrice || Infinity;
+          return currentPrice < bestPrice || (currentPrice === bestPrice && date < bestDate) ? date : bestDate;
+        }, datesWithFlights[0]);
+
+        return Array.from({ length: 6 }, (_, index) => {
+          const date = addDays(cheapestDate, index);
+          return {
+            date,
+            label: formatShortDate(date),
+            ...datePrices[date],
+          };
+        });
+      })();
 
   const toggleAirline = (airline) => {
     setSelectedAirlines((current) =>
@@ -539,6 +592,32 @@ export default function FlightSelectionPage() {
     );
   };
 
+  const hasActiveFilters =
+    selectedAirlines.length > 0 ||
+    selectedSeatClasses.length > 0 ||
+    departureFilters.length > 0 ||
+    isPriceFilterActive;
+
+  const clearFilters = () => {
+    setSelectedAirlines([]);
+    setSelectedSeatClasses([]);
+    setDepartureFilters([]);
+    setSelectedMaxPrice(maxAllowedPrice);
+    setIsPriceFilterActive(false);
+    setCurrentPage(1);
+  };
+
+  const changePage = (page) => {
+    const nextPage = Math.min(totalOutboundPages, Math.max(1, page));
+    setCurrentPage(nextPage);
+    window.requestAnimationFrame(() => {
+      document.querySelector(".flight-selection-section")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
   const updateSearchParams = (nextValues) => {
     const params = new URLSearchParams(searchParams);
     Object.entries(nextValues).forEach(([key, value]) => {
@@ -554,22 +633,17 @@ export default function FlightSelectionPage() {
   };
 
   const handleSelectFlight = (flight, seatClass) => {
+    const bookingTarget = `/booking/${flight.maChuyenBay}?${new URLSearchParams({
+      fare: seatClass || "economy",
+      passengers: "1",
+    }).toString()}`;
+
     if (!currentUser) {
-      const redirectTarget = `/flight-selection?${new URLSearchParams({
-        from: fromCode,
-        to: toCode,
-        date: selectedDate,
-        tripType,
-        ...(tripType === "roundtrip" ? { returnDate } : {}),
-      }).toString()}`;
-      navigate(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+      navigate(`/login?redirect=${encodeURIComponent(bookingTarget)}`);
       return;
     }
 
-    navigate(`/booking/${flight.maChuyenBay}?${new URLSearchParams({
-      fare: seatClass || "Economy",
-      passengers: "1",
-    }).toString()}`, {
+    navigate(bookingTarget, {
       state: {
         flight,
         selectedSeatClass: seatClass,
@@ -590,7 +664,11 @@ export default function FlightSelectionPage() {
           <div className="flight-selection-hero-copy">
             <p className="flight-selection-overline">Flight Selection</p>
             <h1>
-              {fromCode || "Tất cả điểm đi"} <span>→</span> {toCode || "Tất cả điểm đến"}
+              {fromCode || toCode ? (
+                <>{fromCode || "Tất cả điểm đi"} <span>→</span> {toCode || "Tất cả điểm đến"}</>
+              ) : (
+                "Tất cả chuyến bay"
+              )}
             </h1>
             <p>
               {formatHeaderDate(selectedDate)} | {totalFlightsFound} chuyến bay | 1 Adult |{" "}
@@ -608,6 +686,14 @@ export default function FlightSelectionPage() {
               <div className="flight-selection-card flight-selection-filter-card">
                 <div className="flight-selection-card-header">
                   <h2>Filter Results</h2>
+                  <button
+                    type="button"
+                    className="flight-selection-clear-filters"
+                    onClick={clearFilters}
+                    disabled={!hasActiveFilters}
+                  >
+                    Xóa bộ lọc
+                  </button>
                 </div>
 
                 <div className="flight-selection-filter-group">
@@ -724,7 +810,10 @@ export default function FlightSelectionPage() {
                     min={0}
                     max={maxAllowedPrice || 1}
                     value={selectedMaxPrice || 0}
-                    onChange={(event) => setSelectedMaxPrice(Number(event.target.value))}
+                    onChange={(event) => {
+                      setSelectedMaxPrice(Number(event.target.value));
+                      setIsPriceFilterActive(true);
+                    }}
                   />
                   <div className="flight-selection-price-labels">
                     <span>0 VND</span>
@@ -799,13 +888,52 @@ export default function FlightSelectionPage() {
               </div>
 
               <FlightListSection
-                title={`Chuyến đi: ${fromCode || "Tất cả điểm đi"} → ${toCode || "Tất cả điểm đến"}`}
-                flights={filteredOutboundFlights}
+                title={
+                  fromCode || toCode
+                    ? `Chuyến đi: ${fromCode || "Tất cả điểm đi"} → ${toCode || "Tất cả điểm đến"}`
+                    : "Danh sách tất cả chuyến bay"
+                }
+                flights={paginatedOutboundFlights}
+                totalCount={filteredOutboundFlights.length}
                 loading={outboundLoading}
                 error={outboundError}
                 emptyMessage="Hãy thử đổi ngày bay, khung giờ hoặc mức giá để xem thêm lựa chọn."
                 onSelectFlight={handleSelectFlight}
               />
+
+              {!outboundLoading && !outboundError && totalOutboundPages > 1 && (
+                <nav className="flight-selection-pagination" aria-label="Phân trang chuyến bay">
+                  <button
+                    type="button"
+                    onClick={() => changePage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <MaterialIcon name="chevron_left" />
+                    Trước
+                  </button>
+                  <div className="flight-selection-pagination-pages">
+                    {Array.from({ length: totalOutboundPages }, (_, index) => index + 1).map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        className={page === currentPage ? "is-active" : ""}
+                        aria-current={page === currentPage ? "page" : undefined}
+                        onClick={() => changePage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => changePage(currentPage + 1)}
+                    disabled={currentPage === totalOutboundPages}
+                  >
+                    Sau
+                    <MaterialIcon name="chevron_right" />
+                  </button>
+                </nav>
+              )}
 
               {tripType === "roundtrip" && (
                 <FlightListSection

@@ -1,0 +1,19 @@
+@startuml
+actor Customer
+participant "Frontend (React)" as FE
+participant "API BookingController" as API
+database "SQLite" as DB
+
+Customer -> FE: Click ghế (Available)
+FE -> FE: Sinh SessionId
+FE -> API: POST /hold (SessionId, SeatId)
+API -> DB: Query GheChuyenBay
+DB --> API: Entity Seat (PhienBan=1)
+API -> API: Check Available == true
+API -> API: Set Held, GiuDenLuc = +30m, PhienBan=2
+API -> DB: SaveChangesAsync()
+note right of DB: Optimistic Concurrency check:\nWHERE Id=SeatId AND PhienBan=1
+DB --> API: Success (1 row affected)
+API --> FE: 200 OK
+FE -> Customer: Hiển thị ghế màu Vàng
+@enduml

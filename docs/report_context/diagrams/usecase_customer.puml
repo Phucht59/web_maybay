@@ -1,0 +1,26 @@
+@startuml
+left to right direction
+actor "Khách hàng" as Customer
+
+rectangle "Phân hệ Khách hàng" {
+  usecase "Tra cứu chuyến bay" as UC1
+  usecase "Lọc/Sắp xếp chuyến bay" as UC2
+  usecase "Xem sơ đồ ghế" as UC3
+  usecase "Giữ ghế (Hold Seat)" as UC4
+  usecase "Hủy giữ ghế (Release)" as UC5
+  usecase "Nhập thông tin hành khách" as UC6
+  usecase "Thanh toán (Idempotent)" as UC7
+}
+
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+Customer --> UC4
+Customer --> UC5
+Customer --> UC6
+Customer --> UC7
+
+UC4 .> UC3 : <<extend>>
+UC6 .> UC4 : <<include>>
+UC7 .> UC6 : <<include>>
+@enduml

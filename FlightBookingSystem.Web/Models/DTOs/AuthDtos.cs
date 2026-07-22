@@ -12,9 +12,8 @@ namespace FlightBookingSystem.Web.Models.DTOs
         [MaxLength(160, ErrorMessage = "Họ tên tối đa 160 ký tự")]
         public string HoTen { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Vui lòng nhập số điện thoại")]
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
-        public string SoDienThoai { get; set; } = string.Empty;
+        public string? SoDienThoai { get; set; }
 
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
         [MinLength(6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự")]
@@ -41,6 +40,7 @@ namespace FlightBookingSystem.Web.Models.DTOs
         public int MaTaiKhoan { get; set; }
         public string HoTen { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string SoDienThoai { get; set; } = string.Empty;
         public string VaiTro { get; set; } = string.Empty;
     }
 }

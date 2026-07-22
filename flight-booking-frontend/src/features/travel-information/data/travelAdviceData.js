@@ -1,0 +1,16 @@
+import { article, section, travelChecklist } from "./helpers";
+
+
+export const travelAdviceGroup = {
+  slug: "travel-advice", title: "Chuẩn bị cho chuyến bay", icon: "checklist",
+  description: "Biến những việc cần nhớ thành một checklist theo thời điểm, đủ linh hoạt cho từng loại hành trình.",
+  accent: "violet",
+  featuredArticleSlug: "smooth-journey-guide",
+  callout: { icon: "event_note", title: "Mốc thời gian để tổ chức công việc", text: "7 ngày, 24 giờ và 3 giờ là cấu trúc gợi ý, không phải thời hạn bắt buộc. Hãy theo thời gian chính thức của chuyến bay." },
+  items: [
+    article({ slug: "vietnam-domestic-flights", title: "Chuyến bay nội địa Việt Nam", template: "checklist", summary: "Rà soát giấy tờ, đường đến sân bay và hành lý cho một chặng bay trong nước bằng checklist theo thời điểm.", checklist: travelChecklist("chuyến bay nội địa"), sections: [section("documents", "Giấy tờ và thông tin đặt chỗ", "Đối chiếu tên hành khách, chặng bay và giấy tờ được chấp nhận theo hướng dẫn chính thức."), section("arrival", "Kế hoạch đến sân bay", "Chọn phương án di chuyển có dự phòng và kiểm tra đúng nhà ga trước khi khởi hành.")], relatedSlugs: ["smooth-journey-guide", "airport-information"] }),
+    article({ slug: "flights-to-vietnam", title: "Chuyến bay đến Việt Nam", template: "checklist", summary: "Tổ chức giấy tờ nhập cảnh, hành lý và chặng di chuyển tiếp theo trước khi đến Việt Nam.", checklist: travelChecklist("hành trình đến Việt Nam"), warnings: [{ tone: "info", title: "Yêu cầu nhập cảnh có thể thay đổi", text: "Chỉ dùng nguồn của cơ quan chức năng và thông tin chính thức áp dụng cho quốc tịch, hành trình của bạn." }], relatedSlugs: ["international-flights-from-vietnam", "connecting-services"] }),
+    article({ slug: "international-flights-from-vietnam", title: "Chuyến bay từ Việt Nam đi quốc tế", template: "checklist", summary: "Chuẩn bị hộ chiếu, điều kiện đến điểm đến và thời gian cho các bước xuất cảnh bằng một lộ trình rõ ràng.", checklist: travelChecklist("hành trình quốc tế"), warnings: [{ tone: "info", title: "Kiểm tra theo điểm đến", text: "Yêu cầu thị thực và nhập cảnh phụ thuộc hồ sơ cá nhân; trang không xác nhận tính đủ điều kiện." }], relatedSlugs: ["flights-to-vietnam", "smooth-journey-guide"] }),
+    article({ slug: "smooth-journey-guide", title: "Cẩm nang cho một hành trình thuận lợi", template: "guide", summary: "Một bộ thói quen nhỏ giúp bạn giảm việc phải nhớ, xử lý thay đổi bình tĩnh và giữ những thứ quan trọng trong tầm tay.", checklist: [{ title: "Ba lớp dự phòng", items: ["Bản giấy hoặc bản offline của thông tin quan trọng", "Phương án di chuyển thay thế", "Thông tin liên hệ hỗ trợ đã lưu"] }], sections: [section("one-place", "Gom thông tin về một nơi", "Lưu vé, giấy tờ, địa chỉ và xác nhận dịch vụ theo một cấu trúc dễ tìm cả khi mất kết nối."), section("pace", "Tạo nhịp cho hành trình", "Chừa khoảng thở giữa các bước, theo dõi thay đổi và ưu tiên xử lý một việc tại một thời điểm."), section("arrival", "Chuẩn bị cho lúc đến", "Biết trước cách rời sân bay, điểm gặp và cách liên lạc giúp phần cuối hành trình nhẹ nhàng hơn.")], relatedSlugs: ["vietnam-domestic-flights", "international-flights-from-vietnam", "airport-information"] }),
+  ],
+};

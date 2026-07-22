@@ -53,6 +53,12 @@
   padding: 8px 64px;
 }
 
+.top-bar.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-110%);
+}
+
 .top-bar-left,
 .top-bar-right {
   display: flex;
@@ -642,6 +648,161 @@
 }
 
 /* =========================
+   Popular routes & stories
+   ========================= */
+.deal-section,
+.travel-stories {
+  padding: 78px 64px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.deal-section:nth-of-type(even) {
+  background: linear-gradient(135deg, #f1f7f7 0%, #fbfaf7 100%);
+}
+
+.deal-heading {
+  max-width: 1440px;
+  margin: 0 auto 30px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.deal-heading > div:first-child > span,
+.story-body > span {
+  color: var(--lotus-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.deal-heading h2 {
+  margin: 7px 0 0;
+  color: var(--charcoal-text);
+  font-family: 'Noto Serif', serif;
+  font-size: clamp(27px, 3vw, 40px);
+  line-height: 1.18;
+}
+
+.deal-controls { display: flex; gap: 10px; }
+.deal-controls button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(0, 104, 133, 0.2);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ocean-teal);
+  background: #fff;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+.deal-controls button:hover { color: #fff; background: var(--ocean-teal); transform: translateY(-2px); }
+
+.deal-rail {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 54px) / 4);
+  gap: 18px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 4px 2px 18px;
+}
+.deal-rail::-webkit-scrollbar { display: none; }
+
+.deal-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(13, 48, 60, 0.13);
+  scroll-snap-align: start;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.deal-card:hover { transform: translateY(-5px); box-shadow: 0 18px 42px rgba(13, 48, 60, 0.2); }
+
+.deal-photo {
+  height: 310px;
+  position: relative;
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+}
+
+.deal-rank,
+.deal-country {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(17, 27, 31, 0.66);
+  backdrop-filter: blur(8px);
+  font-size: 11px;
+  font-weight: 700;
+}
+.deal-rank { right: 12px; }
+.deal-country { left: 12px; background: rgba(0, 104, 133, 0.82); }
+
+.deal-gradient {
+  position: absolute;
+  inset: 0;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: #fff;
+  background: linear-gradient(180deg, transparent 28%, rgba(8, 20, 25, 0.25) 50%, rgba(8, 20, 25, 0.92) 100%);
+}
+.deal-gradient h3 { margin: 0 0 24px; font-size: 19px; line-height: 1.35; }
+.deal-price { display: grid; text-align: right; }
+.deal-price small { font-size: 11px; }
+.deal-price strong { font-size: 18px; }
+.deal-price span { margin-top: 3px; font-size: 11px; opacity: 0.82; }
+
+.deal-card > button {
+  width: calc(100% - 20px);
+  margin: 10px;
+  border: 0;
+  border-radius: 11px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  background: var(--ocean-teal);
+  font-weight: 800;
+  cursor: pointer;
+}
+.deal-card > button:hover { background: #004f66; }
+.deal-card > button .material-symbols-outlined { font-size: 18px; }
+.deal-note { max-width: 1440px; margin: 10px auto 0; color: var(--on-surface-variant); font-size: 11px; }
+
+.travel-stories { background: #f7f5f1; }
+.deal-heading > a,
+.story-body a { display: inline-flex; align-items: center; gap: 6px; color: var(--ocean-teal); text-decoration: none; font-weight: 800; }
+.deal-heading > a .material-symbols-outlined,
+.story-body a .material-symbols-outlined { font-size: 18px; }
+.story-grid { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.story-card { overflow: hidden; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgba(13,48,60,.1); }
+.story-link { display: block; color: inherit; text-decoration: none; }
+.story-photo { height: 230px; background-size: 400% 200%; background-repeat: no-repeat; transition: transform .5s ease; }
+.story-card:hover .story-photo { transform: scale(1.035); }
+.story-body { position: relative; padding: 24px; background: #fff; }
+.story-body h3 { min-height: 56px; margin: 9px 0 14px; color: var(--charcoal-text); font-family: 'Noto Serif', serif; font-size: 20px; line-height: 1.4; }
+.story-body p { margin: 0 0 18px; color: var(--on-surface-variant); font-size: 13px; }
+.story-read-more { display: inline-flex; align-items: center; gap: 6px; color: var(--ocean-teal); font-weight: 800; }
+.story-read-more .material-symbols-outlined { font-size: 18px; transition: transform .2s ease; }
+.story-link:hover .story-read-more .material-symbols-outlined { transform: translateX(4px); }
+
+/* =========================
    Newsletter
    ========================= */
 .newsletter {
@@ -860,6 +1021,8 @@
   .booking-panel { left: 24px; right: 24px; }
   .services { padding: 48px 24px; }
   .experience { padding: 80px 24px; }
+  .deal-section, .travel-stories { padding: 64px 24px; }
+  .deal-rail { grid-auto-columns: calc((100% - 36px) / 3); }
   .newsletter { padding: 80px 24px; }
   .footer { padding: 48px 24px; }
   .services-grid { grid-template-columns: repeat(3, 1fr); }
@@ -878,6 +1041,8 @@
   .bento-grid { grid-template-columns: 1fr; height: auto; }
   .bento-main { height: 300px; }
   .bento-sm { height: 200px; }
+  .deal-rail { grid-auto-columns: calc((100% - 18px) / 2); }
+  .story-grid { grid-template-columns: 1fr 1fr; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-bottom { flex-direction: column; text-align: center; gap: 16px; }
   .search-input { width: 100px; }
@@ -888,6 +1053,13 @@
   .footer-grid { grid-template-columns: 1fr; }
   .newsletter-form { flex-direction: column; align-items: stretch; }
   .hero { min-height: 500px; }
+  .deal-section, .travel-stories { padding: 52px 16px; }
+  .deal-heading { align-items: center; }
+  .deal-heading > a { display: none; }
+  .deal-heading h2 { font-size: 27px; }
+  .deal-rail { grid-auto-columns: 88%; }
+  .deal-photo { height: 300px; }
+  .story-grid { grid-template-columns: 1fr; }
 }
 
 /* User Menu */

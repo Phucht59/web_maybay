@@ -1,0 +1,34 @@
+@startuml
+actor Customer
+participant "Frontend" as FE
+participant "AccountController" as API
+database "SQLite" as DB
+
+== Luồng Đăng ký (Register) ==
+Customer -> FE: Nhập Email, Mật khẩu, Họ tên
+FE -> API: POST /api/account/register
+API -> DB: Kiểm tra Email tồn tại
+alt Email đã tồn tại
+    DB --> API: Found
+    API --> FE: 400 Bad Request
+else Email hợp lệ
+    API -> API: Hash Password (BCrypt)
+    API -> DB: Insert TaiKhoan (Customer)
+    DB --> API: Success
+    API --> FE: 200 OK
+end
+
+== Luồng Đăng nhập (Login) ==
+Customer -> FE: Nhập Email, Mật khẩu
+FE -> API: POST /api/account/login
+API -> DB: Query TaiKhoan theo Email
+DB --> API: Trả về Hash Password
+API -> API: Verify Password
+alt Password đúng
+    API -> API: Tạo JWT Token
+    API --> FE: 200 OK (Token, VaiTro)
+    FE -> FE: Lưu Token vào localStorage
+else Password sai
+    API --> FE: 401 Unauthorized
+end
+@enduml

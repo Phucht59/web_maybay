@@ -20,6 +20,10 @@ public static class DatabaseSeeder
         await ClearDatabaseAsync(db);
         await DbInitializer.SeedAdminAsync(services);
 
+        var additionalServices = AdditionalServiceCatalog.CreateEntities();
+        db.DichVuThems.AddRange(additionalServices);
+        await db.SaveChangesAsync();
+
         db.ChangeTracker.AutoDetectChangesEnabled = false;
         var rng = new Random(20260713);
 
@@ -124,7 +128,12 @@ public static class DatabaseSeeder
         await SeedFlightSeatsAndBookings(db, flights, seatsByAircraft, economy, business, first, rng, logger);
 
         db.ChangeTracker.AutoDetectChangesEnabled = true;
-        logger.LogInformation("Seeded {AirportCount} airports, {AircraftCount} aircraft types, {FlightCount} flights and dynamic flight seats.", airports.Count, aircraft.Count, flights.Count);
+        logger.LogInformation(
+            "Seeded {AirportCount} airports, {AircraftCount} aircraft types, {FlightCount} flights, {ServiceCount} additional services and dynamic flight seats.",
+            airports.Count,
+            aircraft.Count,
+            flights.Count,
+            additionalServices.Count);
     }
 
     private static SanBay Airport(string code, string name, string city) => new()
@@ -374,4 +383,3 @@ public static class DatabaseSeeder
 
     private static string GeneratePnr() => Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
 }
-

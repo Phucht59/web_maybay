@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FlightBookingSystem.Web.Data;
+using FlightBookingSystem.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +15,24 @@ public class BookingController : ControllerBase
     private static readonly TimeSpan SelectionHoldDuration = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan PaymentHoldDuration = TimeSpan.FromMinutes(10);
     private readonly ApplicationDbContext _db;
+    private readonly BookingPaymentClosureService _closureService;
+    private readonly ILogger<BookingController> _logger;
 
-    public BookingController(ApplicationDbContext db) => _db = db;
+    public BookingController(
+        ApplicationDbContext db,
+        BookingPaymentClosureService closureService,
+        ILogger<BookingController> logger)
+    {
+        _db = db;
+        _closureService = closureService;
+        _logger = logger;
+    }
 
     [HttpGet("flights/{flightId:int}/seats")]
     public async Task<IActionResult> GetSeatMap(int flightId, [FromQuery] string? sessionId)
     {
-        await ReleaseExpiredSeats(flightId);
+        if (!await ReleaseExpiredSeats(flightId))
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể xử lý ghế hết hạn." });
         var accountId = GetAccountId();
         var paymentThreshold = DateTime.UtcNow.Add(PaymentHoldDuration).AddSeconds(3);
 
@@ -88,7 +100,7 @@ public class BookingController : ControllerBase
 
         var services = await _db.DichVuThems.AsNoTracking()
             .Where(d => d.TrangThai == "Active")
-            .Select(d => new { d.MaDichVu, d.TenDichVu, d.LoaiDichVu, d.KhoiLuongKg, d.Gia, d.MoTa })
+            .Select(d => new { d.MaDichVu, d.TenDichVu, d.LoaiDichVu, d.KhoiLuongKg, d.Gia, d.MoTa, d.TrangThai })
             .ToListAsync();
 
         return Ok(new { flight, seats = seatMap, services, serverTime = DateTimeOffset.UtcNow });
@@ -105,7 +117,8 @@ public class BookingController : ControllerBase
         var holdUntil = now.Add(SelectionHoldDuration);
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
-        await ReleaseExpiredSeats(flightId);
+        if (!await ReleaseExpiredSeats(flightId))
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể xử lý ghế hết hạn." });
 
         var seat = await _db.GheChuyenBays
             .Include(g => g.GheMayBay)
@@ -156,7 +169,8 @@ public class BookingController : ControllerBase
         var holdUntil = now.Add(PaymentHoldDuration);
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
-        await ReleaseExpiredSeats(flightId);
+        if (!await ReleaseExpiredSeats(flightId))
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể xử lý ghế hết hạn." });
 
         var seats = await _db.GheChuyenBays
             .Where(g => g.MaChuyenBay == flightId && request.SeatIds.Contains(g.MaGheChuyenBay))
@@ -218,7 +232,8 @@ public class BookingController : ControllerBase
         var accountId = GetAccountId();
         var seat = await _db.GheChuyenBays.FirstOrDefaultAsync(g =>
             g.MaChuyenBay == flightId && g.MaGheChuyenBay == seatId &&
-            g.TrangThaiGhe == "Held" && g.GiuBoiTaiKhoanId == accountId && g.SessionId == sessionId);
+            g.TrangThaiGhe == "Held" && g.GiuBoiTaiKhoanId == accountId && g.SessionId == sessionId &&
+            g.MaPhieuDatChoDangGiu == null);
 
         if (seat is null) return NoContent();
         ResetSeat(seat, DateTime.UtcNow);
@@ -228,14 +243,47 @@ public class BookingController : ControllerBase
 
     private int GetAccountId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    private async Task ReleaseExpiredSeats(int flightId)
+    private async Task<bool> ReleaseExpiredSeats(int flightId)
     {
-        var now = DateTime.UtcNow;
-        var expired = await _db.GheChuyenBays
-            .Where(g => g.MaChuyenBay == flightId && g.TrangThaiGhe == "Held" && g.GiuDenLuc < now)
-            .ToListAsync();
-        foreach (var seat in expired) ResetSeat(seat, now);
-        if (expired.Count > 0) await _db.SaveChangesAsync();
+        try
+        {
+            var now = DateTime.UtcNow;
+            var closure = await _closureService.CloseExpiredBookingsForFlightAsync(
+                flightId,
+                now,
+                HttpContext.RequestAborted);
+            if (closure.Failed)
+            {
+                return false;
+            }
+
+            var expired = await _db.GheChuyenBays
+                .Where(g =>
+                    g.MaChuyenBay == flightId &&
+                    g.TrangThaiGhe == "Held" &&
+                    g.MaPhieuDatChoDangGiu == null &&
+                    g.GiuDenLuc < now)
+                .ToListAsync(HttpContext.RequestAborted);
+            foreach (var seat in expired) ResetSeat(seat, now);
+            if (expired.Count > 0)
+            {
+                await _db.SaveChangesAsync(HttpContext.RequestAborted);
+            }
+
+            return true;
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Could not close expired bookings before releasing seats. FlightId={FlightId}",
+                flightId);
+            return false;
+        }
     }
 
     private static void ResetSeat(Models.GheChuyenBay seat, DateTime now)

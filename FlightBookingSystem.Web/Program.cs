@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FlightBookingSystem.Web.Data;
+using FlightBookingSystem.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
             .LogTo(Console.WriteLine, LogLevel.Information);
     }
 });
+builder.Services.AddScoped<CheckoutValidationService>();
+builder.Services.AddScoped<CheckoutCreationService>();
+builder.Services.AddScoped<CheckoutSummaryService>();
+builder.Services.AddScoped<PaymentSimulationService>();
+builder.Services.AddScoped<PaymentFinalizationService>();
+builder.Services.AddScoped<BookingPaymentClosureService>();
 
 // Authentication JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -104,6 +111,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+if (args.Contains("--sync-reference-data"))
+{
+    try
+    {
+        var result = await ReferenceDataSeeder.SyncAdditionalServicesAsync(app.Services);
+        Console.WriteLine(
+            $"Reference data synchronized successfully. Inserted={result.Inserted}, Updated={result.Updated}, Unchanged={result.Unchanged}, DuplicatesDeactivated={result.DuplicatesDeactivated}, Database={result.DatabasePath}. Exiting.");
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Reference data synchronization failed: {exception.Message}");
+        Environment.ExitCode = 1;
+    }
+
+    return;
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

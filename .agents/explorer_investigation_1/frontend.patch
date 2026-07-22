@@ -1,0 +1,153 @@
+diff --git a/flight-booking-frontend/src/pages/booking/BookingSeatPage.jsx b/flight-booking-frontend/src/pages/booking/BookingSeatPage.jsx
+index 19371..19800 100644
+--- a/flight-booking-frontend/src/pages/booking/BookingSeatPage.jsx
++++ b/flight-booking-frontend/src/pages/booking/BookingSeatPage.jsx
+@@ -21,6 +21,14 @@ export default function BookingSeatPage() {
+   const { id: flightId } = useParams();
+   const [searchParams] = useSearchParams();
+   const fareClass = searchParams.get("fare") || "Economy";
++
++  const sessionId = useMemo(() => {
++    let sid = sessionStorage.getItem("booking_session_id");
++    if (!sid) {
++      sid = Math.random().toString(36).substring(2) + Date.now().toString(36);
++      sessionStorage.setItem("booking_session_id", sid);
++    }
++    return sid;
++  }, []);
+ 
+   // Simulate 2 passengers by default for demonstration
+   const numPassengers = parseInt(searchParams.get("passengers") || "2", 10);
+@@ -56,7 +64,7 @@ export default function BookingSeatPage() {
+   // --- Data Fetching ---
+   const fetchSeatMap = useCallback(async () => {
+     try {
+-      const data = await bookingService.getSeatMap(flightId);
++      const data = await bookingService.getSeatMap(flightId, sessionId);
+       setFlight(data.flight || data.chuyenBay);
+       setSeatMap(data.seats || data.danhSachGhe || []);
+       
+@@ -64,19 +72,21 @@ export default function BookingSeatPage() {
+       const heldSeats = (data.seats || data.danhSachGhe || []).filter((s) => s.laGheCuaToi && (s.trangThai === "DangGiu" || s.trangThai === "Held"));
+       if (heldSeats.length > 0) {
+         setPaymentStarted(true);
+-        const lockTime = new Date(heldSeats[0].giuDenLuc).getTime();
+-        const now = new Date().getTime();
+-        const diff = Math.floor((lockTime - now) / 1000);
++        const giuDenLucStr = heldSeats[0].giuDenLuc;
++        const lockTime = new Date(giuDenLucStr.endsWith("Z") ? giuDenLucStr : giuDenLucStr + "Z").getTime();
++        const serverTime = new Date(data.serverTime).getTime();
++        const diff = Math.floor((lockTime - serverTime) / 1000);
+         setTimeLeft(diff > 0 ? diff : 0);
+         
+         // Map back to passengers using functional update to prevent stale closures or infinite loops
+-        let newPassengers = [...passengers];
+-        heldSeats.forEach((s, idx) => {
+-           if (idx < newPassengers.length) {
+-              newPassengers[idx].seatId = s.gheId;
+-              newPassengers[idx].seatName = s.soGhe;
+-              newPassengers[idx].seatPrice = s.giaGhe || 0;
+-           }
++        setPassengers((prevPassengers) => {
++          let newPassengers = [...prevPassengers];
++          heldSeats.forEach((s, idx) => {
++             if (idx < newPassengers.length) {
++                newPassengers[idx].seatId = s.maGheChuyenBay;
++                newPassengers[idx].seatName = s.soGhe;
++                newPassengers[idx].seatPrice = s.giaGhe || 0;
++             }
++          });
++          return newPassengers;
+         });
+-        setPassengers(newPassengers);
+       }
+     } catch (err) {
+       console.error(err);
+       setError("Không thể tải sơ đồ ghế.");
+     } finally {
+       setLoading(false);
+     }
+-  }, [flightId]);
++  }, [flightId, sessionId]);
+ 
+   useEffect(() => {
+     fetchSeatMap();
+@@ -115,8 +126,8 @@ export default function BookingSeatPage() {
+     if (paymentStarted) return;
+     
+     // Nếu ghế đã bán
+-    if (seat.trangThai === "DaBan" || seat.trangThai === "DangGiu") {
++    if (seat.trangThai !== "Available" && !seat.laGheCuaToi) {
+       alert(`Rất tiếc, ghế ${seat.soGhe} đã được đặt. Vui lòng chọn ghế khác.`);
+       return;
+     }
+ 
+@@ -126,7 +137,7 @@ export default function BookingSeatPage() {
+     let newPassengers = [...passengers];
+     
+     // Kiểm tra xem ghế này đã được gán cho khách nào khác chưa
+-    const existingOwnerIndex = newPassengers.findIndex(p => p.seatId === seat.gheId);
++    const existingOwnerIndex = newPassengers.findIndex(p => p.seatId === seat.maGheChuyenBay);
+     
+     // Nếu click vào chính ghế đang chọn -> Bỏ chọn
+     if (existingOwnerIndex === currentPassengerIndex) {
+@@ -141,9 +152,9 @@ export default function BookingSeatPage() {
+             newPassengers[existingOwnerIndex].seatPrice = 0;
+         }
+         
+-        const price = seat.phiChonGhe || (seat.loaiGhe === "Business" ? 500000 : seat.loaiGhe === "Premium Economy" ? 200000 : 0);
+-        newPassengers[currentPassengerIndex].seatId = seat.gheId;
++        const price = seat.giaGhe || 0;
++        newPassengers[currentPassengerIndex].seatId = seat.maGheChuyenBay;
+         newPassengers[currentPassengerIndex].seatName = seat.soGhe;
+         newPassengers[currentPassengerIndex].seatPrice = price;
+         
+@@ -174,7 +185,7 @@ export default function BookingSeatPage() {
+ 
+     try {
+       setLoading(true);
+-      await bookingService.startPaymentHold(flightId, authService.getSessionId(), numPassengers, selectedSeatIds);
++      await bookingService.startPaymentHold(flightId, sessionId, numPassengers, selectedSeatIds);
+       setPaymentStarted(true);
+       setTimeLeft(600);
+       await fetchSeatMap();
+@@ -188,7 +199,7 @@ export default function BookingSeatPage() {
+   const handleCancelHold = async () => {
+     try {
+       setLoading(true);
+-      await bookingService.cancelPaymentHold(flightId, authService.getSessionId());
++      await bookingService.cancelPaymentHold(flightId, sessionId);
+       setPaymentStarted(false);
+       
+       // Xoá gán ghế
+@@ -269,11 +280,11 @@ export default function BookingSeatPage() {
+             <div className="booking-cabin-glass">
+               {rows.map((rowSeats, idx) => (
+                 <div key={idx} className="cabin-row-wrapper">
+-                  <div className="cabin-row-number">{rowSeats[0].soGhe.match(/\d+/)[0]}</div>
++                  <div className="cabin-row-number">{rowSeats[0]?.soGhe?.match(/\d+/)?.[0] || ""}</div>
+                   <div className="cabin-row">
+                     {rowSeats.map((seat) => {
+                       let statusClass = "available";
+                       if (seat.trangThai === "Sold" || seat.trangThai === "DaBan") statusClass = "sold";
+                       else if (seat.trangThai === "Held" || seat.trangThai === "DangGiu") {
+                          statusClass = seat.laGheCuaToi ? "paying" : "sold";
+                       }
+@@ -279,7 +290,7 @@ export default function BookingSeatPage() {
+                       }
+                       
+                       // Kiểm tra xem ghế có đang được chọn bởi bất kỳ hành khách nào không
+-                      const owner = passengers.find(p => p.seatId === seat.gheId);
++                      const owner = passengers.find(p => p.seatId === seat.maGheChuyenBay);
+                       if (owner && statusClass === "available") statusClass = "selected";
+                       
+                       // Seat letter e.g. A, B, C
+@@ -287,7 +298,7 @@ export default function BookingSeatPage() {
+ 
+                       return (
+                         <div
+-                          key={seat.gheId}
++                          key={seat.maGheChuyenBay}
+                           className={`seat-item seat-${statusClass}`}
+                           onClick={() => handleSeatClick(seat)}
+                         >

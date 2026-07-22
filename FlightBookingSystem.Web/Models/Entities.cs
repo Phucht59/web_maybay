@@ -15,7 +15,7 @@ namespace FlightBookingSystem.Web.Models
         public string MatKhauHash { get; set; } = string.Empty;
 
         [MaxLength(30)]
-        public string SoDienThoai { get; set; } = string.Empty;
+        public string? SoDienThoai { get; set; }
 
         [MaxLength(30)]
         public string VaiTro { get; set; } = "Customer";
@@ -218,6 +218,15 @@ namespace FlightBookingSystem.Web.Models
 
         public int? MaTaiKhoan { get; set; }
 
+        [MaxLength(160)]
+        public string HoTenLienHe { get; set; } = string.Empty;
+
+        [MaxLength(254)]
+        public string EmailLienHe { get; set; } = string.Empty;
+
+        [MaxLength(40)]
+        public string SoDienThoaiLienHe { get; set; } = string.Empty;
+
         [MaxLength(30)]
         public string LoaiChuyenDi { get; set; } = "OneWay";
 
@@ -287,6 +296,7 @@ namespace FlightBookingSystem.Web.Models
 
         public PhieuDatCho PhieuDatCho { get; set; } = null!;
         public ICollection<Ve> Ves { get; set; } = new List<Ve>();
+        public ICollection<ChiTietDichVu> ChiTietDichVus { get; set; } = new List<ChiTietDichVu>();
     }
 
     public class Ve
@@ -298,7 +308,7 @@ namespace FlightBookingSystem.Web.Models
         public int MaHanhKhach { get; set; }
 
         [MaxLength(30)]
-        public string SoVeDienTu { get; set; } = string.Empty;
+        public string? SoVeDienTu { get; set; }
 
         public decimal GiaVe { get; set; }
 
@@ -396,12 +406,14 @@ namespace FlightBookingSystem.Web.Models
         public int MaChiTietDichVu { get; set; }
         public int MaPhieuDatCho { get; set; }
         public int? MaVe { get; set; }
+        public int? MaHanhKhach { get; set; }
         public int MaDichVu { get; set; }
         public int SoLuong { get; set; } = 1;
         public decimal Gia { get; set; }
 
         public PhieuDatCho PhieuDatCho { get; set; } = null!;
         public Ve? Ve { get; set; }
+        public HanhKhach? HanhKhach { get; set; }
         public DichVuThem DichVuThem { get; set; } = null!;
     }
 }
