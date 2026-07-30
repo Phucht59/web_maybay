@@ -40,6 +40,9 @@ import ProtectedRoute from "./ProtectedRoute";
 const TravelInformationOverviewPage = lazy(() => import("../pages/travel-information/TravelInformationPages").then((module) => ({ default: module.TravelInformationOverviewPage })));
 const TravelCategoryPage = lazy(() => import("../pages/travel-information/TravelInformationPages").then((module) => ({ default: module.TravelCategoryPage })));
 const TravelArticlePage = lazy(() => import("../pages/travel-information/TravelInformationPages").then((module) => ({ default: module.TravelArticlePage })));
+const AdditionalServicesPage = lazy(() => import("../pages/experience/ExperiencePages").then((module) => ({ default: module.AdditionalServicesPage })));
+const FlightExperiencePage = lazy(() => import("../pages/experience/ExperiencePages").then((module) => ({ default: module.FlightExperiencePage })));
+const LotusmilesPage = lazy(() => import("../pages/experience/ExperiencePages").then((module) => ({ default: module.LotusmilesPage })));
 
 const travelPage = (page) => <Suspense fallback={<main className="travel-route-loading">Đang tải thông tin hành trình...</main>}>{page}</Suspense>;
 
@@ -50,6 +53,9 @@ function AppRoutes() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/search" element={<Navigate to="/flight-selection" replace />} />
                 <Route path="/flight-selection" element={<FlightSelectionPage />} />
+                <Route path="/additional-services" element={travelPage(<AdditionalServicesPage />)} />
+                <Route path="/flight-experience" element={travelPage(<FlightExperiencePage />)} />
+                <Route path="/lotusmiles" element={travelPage(<LotusmilesPage />)} />
                 <Route path="/cam-nang/:slug" element={<BlogArticlePage />} />
                 <Route path="/travel-information" element={travelPage(<TravelInformationOverviewPage />)} />
                 <Route path="/travel-information/:categorySlug" element={travelPage(<TravelCategoryPage />)} />
@@ -109,6 +115,7 @@ function AppRoutes() {
                     <Route path="danh-muc/ghe-may-bay/them" element={<SeatMapGeneratePage />} />
                     <Route path="danh-muc/ghe-may-bay/:id" element={<SeatMapDetailPage />} />
                     <Route path="danh-muc/ghe-may-bay/:id/sua" element={<SeatEditPage />} />
+                    
                 </Route>
             </Route>
         </Routes>

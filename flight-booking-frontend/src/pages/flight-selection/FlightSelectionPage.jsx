@@ -1,13 +1,8 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authService } from "../../services/authService";
 import { publicFlightService } from "../../services/publicFlightService";
 import "../../styles/pages/flight-selection.css";
-
-const DEPARTURE_WINDOWS = [
-  { key: "morning", label: "Morning", range: "00:00 - 12:00", start: 0, end: 12 },
-  { key: "afternoon", label: "Afternoon", range: "12:00 - 24:00", start: 12, end: 24 },
-];
 
 const TRIP_TYPES = [
   { key: "oneway", label: "Một chiều" },
@@ -21,6 +16,8 @@ const FARE_TYPES = [
 ];
 
 const FLIGHTS_PER_PAGE = 15;
+const DATE_RAIL_DAYS = 21;
+const DATE_RAIL_LEADING_DAYS = 5;
 
 function MaterialIcon({ name, fill = false }) {
   return (
@@ -52,6 +49,38 @@ function addDays(value, days) {
   return toIsoDate(date);
 }
 
+function getTodayIsoDate() {
+  return toIsoDate(new Date());
+}
+
+function normalizeDepartureDate(value, today) {
+  if (!value) return "";
+  return value < today ? today : value;
+}
+
+function getMinimumReturnDate(departureDate) {
+  return departureDate ? addDays(departureDate, 1) : "";
+}
+
+function normalizeReturnDate(value, departureDate) {
+  const minimum = getMinimumReturnDate(departureDate);
+  if (!minimum) return value || "";
+  if (!value || value < minimum) return minimum;
+  return value;
+}
+
+function getRailStartDate(focusDate, today) {
+  if (!focusDate || focusDate < today) return today;
+  const candidate = addDays(focusDate, -DATE_RAIL_LEADING_DAYS);
+  return candidate < today ? today : candidate;
+}
+
+function isDateInsideRail(date, railStartDate) {
+  if (!date || !railStartDate) return false;
+  const railEndDate = addDays(railStartDate, DATE_RAIL_DAYS - 1);
+  return date >= railStartDate && date <= railEndDate;
+}
+
 function formatHeaderDate(value) {
   if (!value) return "Chọn ngày";
   return new Date(`${value}T00:00:00`).toLocaleDateString("vi-VN", {
@@ -68,6 +97,51 @@ function formatShortDate(value) {
     day: "2-digit",
     month: "short",
   });
+}
+
+function formatReturnDate(value) {
+  if (!value) return "Chọn ngày về";
+  return new Date(`${value}T00:00:00`).toLocaleDateString("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatCalendarTitle(value, emptyLabel) {
+  if (!value) return emptyLabel;
+  return new Date(`${value}T00:00:00`).toLocaleDateString("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function getMonthStart(value) {
+  const base = value ? new Date(`${value}T00:00:00`) : new Date();
+  return new Date(base.getFullYear(), base.getMonth(), 1);
+}
+
+function addMonths(date, amount) {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function buildMonthDays(monthDate) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const days = [];
+
+  for (let i = 0; i < mondayOffset; i += 1) days.push(null);
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
+    days.push(toIsoDate(new Date(year, month, day)));
+  }
+  while (days.length % 7 !== 0) days.push(null);
+  return days;
 }
 
 function formatTime(value) {
@@ -90,9 +164,6 @@ function formatFlightDateTime(value) {
   });
 }
 
-function formatCurrency(number) {
-  return `${new Intl.NumberFormat("vi-VN").format(Math.round(Number(number || 0)))} VND`;
-}
 
 function formatCompactPrice(number) {
   const value = Number(number || 0);
@@ -141,24 +212,23 @@ function getLowestPrice(flight) {
   return prices.length ? Math.min(...prices) : Number(flight.giaCoBan || 0);
 }
 
+function isFlightPurchasable(flight) {
+  const departureTime = new Date(flight?.gioKhoiHanh).getTime();
+  const hasAvailableSeats = Number(flight?.gheConTrong || 0) > 0;
+  const hasAvailableFare = getSeatClasses(flight).some((item) => item.price > 0);
+
+  return Number.isFinite(departureTime) && departureTime > Date.now() && hasAvailableSeats && hasAvailableFare;
+}
+
+function getPurchasableFlights(data) {
+  const flights = Array.isArray(data?.flights) ? data.flights : [];
+  return flights.filter(isFlightPurchasable);
+}
+
 function getAllSeatLabels(flights) {
   return [...new Set(flights.flatMap((flight) => getSeatClasses(flight).map((item) => item.label)))];
 }
 
-function getPriceBounds(flights) {
-  const prices = flights.map(getLowestPrice).filter((price) => price > 0);
-  if (!prices.length) return { min: 0, max: 0 };
-  return { min: Math.min(...prices), max: Math.max(...prices) };
-}
-
-function matchesDepartureFilter(flight, selectedWindows) {
-  if (!selectedWindows.length) return true;
-  const hour = new Date(flight.gioKhoiHanh).getHours();
-  return selectedWindows.some((key) => {
-    const windowOption = DEPARTURE_WINDOWS.find((item) => item.key === key);
-    return windowOption ? hour >= windowOption.start && hour < windowOption.end : true;
-  });
-}
 
 function matchesSeatClassFilter(flight, selectedSeatClasses) {
   if (!selectedSeatClasses.length) return true;
@@ -325,12 +395,16 @@ export default function FlightSelectionPage() {
   const toCode = searchParams.get("to") || "";
   const dateParam = searchParams.get("date") || "";
   const currentUser = authService.getCurrentUser();
+  const today = useMemo(() => getTodayIsoDate(), []);
+  const initialSelectedDate = normalizeDepartureDate(dateParam, today);
 
   const [tripType, setTripType] = useState(searchParams.get("tripType") || "oneway");
-  const [selectedDate, setSelectedDate] = useState(dateParam);
-  const [returnDate, setReturnDate] = useState(
-    searchParams.get("returnDate") || (dateParam ? addDays(dateParam, 3) : "")
-  );
+  const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
+  const [returnDate, setReturnDate] = useState(() => {
+    const requestedReturnDate =
+      searchParams.get("returnDate") || (initialSelectedDate ? addDays(initialSelectedDate, 3) : "");
+    return normalizeReturnDate(requestedReturnDate, initialSelectedDate);
+  });
 
   const [outboundFlights, setOutboundFlights] = useState([]);
   const [returnFlights, setReturnFlights] = useState([]);
@@ -338,37 +412,127 @@ export default function FlightSelectionPage() {
   const [returnLoading, setReturnLoading] = useState(false);
   const [outboundError, setOutboundError] = useState("");
   const [returnError, setReturnError] = useState("");
-  const [datePrices, setDatePrices] = useState({});
 
+  const [calendarFlights, setCalendarFlights] = useState([]);
+  const [returnCalendarFlights, setReturnCalendarFlights] = useState([]);
+  const [returnCalendarLoading, setReturnCalendarLoading] = useState(false);
+  const [departureCalendarMonth, setDepartureCalendarMonth] = useState(() =>
+    getMonthStart(initialSelectedDate || today)
+  );
+  const [returnCalendarMonth, setReturnCalendarMonth] = useState(() =>
+    getMonthStart(initialSelectedDate ? addDays(initialSelectedDate, 1) : today)
+  );
+  const [departureCalendarOpen, setDepartureCalendarOpen] = useState(false);
+  const [returnCalendarOpen, setReturnCalendarOpen] = useState(false);
   const [selectedAirlines, setSelectedAirlines] = useState([]);
   const [selectedSeatClasses, setSelectedSeatClasses] = useState([]);
-  const [departureFilters, setDepartureFilters] = useState([]);
-  const [maxAllowedPrice, setMaxAllowedPrice] = useState(0);
-  const [selectedMaxPrice, setSelectedMaxPrice] = useState(0);
-  const [isPriceFilterActive, setIsPriceFilterActive] = useState(false);
+  const [sortOrder, setSortOrder] = useState("default");
   const [currentPage, setCurrentPage] = useState(1);
+  const [railStartDate, setRailStartDate] = useState(() =>
+    getRailStartDate(initialSelectedDate || today, today)
+  );
+  const [isRailDragging, setIsRailDragging] = useState(false);
+
+  const dateRailRef = useRef(null);
+  const dateChipRefs = useRef(new Map());
+  const pendingCenterDateRef = useRef(initialSelectedDate || "");
+  const suppressRailClickRef = useRef(false);
+  const railDragRef = useRef({
+    active: false,
+    pointerId: null,
+    startX: 0,
+    scrollLeft: 0,
+    moved: false,
+  });
+  const hasUserInteractedWithRailRef = useRef(false);
+  const initialRailCenteredRef = useRef(false);
 
   useEffect(() => {
-    setSelectedDate(dateParam);
-  }, [dateParam]);
+    const nextSelectedDate = normalizeDepartureDate(dateParam, today);
+    setSelectedDate(nextSelectedDate);
+
+    if (nextSelectedDate) {
+      if (!isDateInsideRail(nextSelectedDate, railStartDate)) {
+        setRailStartDate(getRailStartDate(nextSelectedDate, today));
+      }
+      pendingCenterDateRef.current = nextSelectedDate;
+    }
+  }, [dateParam, railStartDate, today]);
 
   useEffect(() => {
     const nextTripType = searchParams.get("tripType") || "oneway";
-    const nextReturnDate =
-      searchParams.get("returnDate") || (dateParam ? addDays(dateParam, 3) : "");
+    const safeDepartureDate = normalizeDepartureDate(dateParam, today);
+    const requestedReturnDate =
+      searchParams.get("returnDate") || (safeDepartureDate ? addDays(safeDepartureDate, 3) : "");
 
     setTripType(nextTripType);
-    setReturnDate(nextReturnDate);
-  }, [searchParams, dateParam]);
+    setReturnDate(normalizeReturnDate(requestedReturnDate, safeDepartureDate));
+  }, [searchParams, dateParam, today]);
 
   useEffect(() => {
     setSelectedAirlines([]);
     setSelectedSeatClasses([]);
-    setDepartureFilters([]);
-    setSelectedMaxPrice(0);
-    setIsPriceFilterActive(false);
+    setSortOrder("default");
     setCurrentPage(1);
+    setRailStartDate(getRailStartDate(selectedDate || today, today));
+    initialRailCenteredRef.current = false;
+    hasUserInteractedWithRailRef.current = false;
+    if (selectedDate) pendingCenterDateRef.current = selectedDate;
   }, [fromCode, toCode]);
+
+  useEffect(() => {
+    let active = true;
+
+    publicFlightService
+      .searchFlights({
+        maSanBayDi: fromCode || undefined,
+        maSanBayDen: toCode || undefined,
+        ngayDi: undefined,
+      })
+      .then((data) => {
+        if (!active) return;
+        setCalendarFlights(getPurchasableFlights(data));
+      })
+      .catch(() => {
+        if (active) setCalendarFlights([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fromCode, toCode]);
+
+  useEffect(() => {
+    if (tripType !== "roundtrip" || !fromCode || !toCode) {
+      setReturnCalendarFlights([]);
+      setReturnCalendarLoading(false);
+      return;
+    }
+
+    let active = true;
+    setReturnCalendarLoading(true);
+
+    publicFlightService
+      .searchFlights({
+        maSanBayDi: toCode,
+        maSanBayDen: fromCode,
+        ngayDi: undefined,
+      })
+      .then((data) => {
+        if (!active) return;
+        setReturnCalendarFlights(getPurchasableFlights(data));
+      })
+      .catch(() => {
+        if (active) setReturnCalendarFlights([]);
+      })
+      .finally(() => {
+        if (active) setReturnCalendarLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [tripType, fromCode, toCode]);
 
   useEffect(() => {
     let active = true;
@@ -383,8 +547,12 @@ export default function FlightSelectionPage() {
       })
       .then((data) => {
         if (!active) return;
-        const flights = Array.isArray(data.flights) ? data.flights : [];
-        setOutboundFlights(flights);
+        const purchasableFlights = getPurchasableFlights(data);
+        setOutboundFlights(
+          selectedDate
+            ? purchasableFlights.filter((flight) => toIsoDate(flight.gioKhoiHanh) === selectedDate)
+            : purchasableFlights
+        );
       })
       .catch((requestError) => {
         if (!active) return;
@@ -401,7 +569,10 @@ export default function FlightSelectionPage() {
   }, [fromCode, toCode, selectedDate]);
 
   useEffect(() => {
-    if (tripType !== "roundtrip" || !fromCode || !toCode || !returnDate) {
+    const minimumReturnDate = getMinimumReturnDate(selectedDate);
+    const safeReturnDate = normalizeReturnDate(returnDate, selectedDate);
+
+    if (tripType !== "roundtrip" || !fromCode || !toCode || !safeReturnDate || !minimumReturnDate) {
       setReturnFlights([]);
       setReturnError("");
       setReturnLoading(false);
@@ -416,11 +587,11 @@ export default function FlightSelectionPage() {
       .searchFlights({
         maSanBayDi: toCode,
         maSanBayDen: fromCode,
-        ngayDi: returnDate || undefined,
+        ngayDi: safeReturnDate,
       })
       .then((data) => {
         if (!active) return;
-        setReturnFlights(Array.isArray(data.flights) ? data.flights : []);
+        setReturnFlights(getPurchasableFlights(data));
       })
       .catch((requestError) => {
         if (!active) return;
@@ -434,68 +605,100 @@ export default function FlightSelectionPage() {
     return () => {
       active = false;
     };
-  }, [tripType, fromCode, toCode, returnDate]);
+  }, [tripType, fromCode, toCode, selectedDate, returnDate]);
 
-  useEffect(() => {
-    let active = true;
-    if (!selectedDate) {
-      const grouped = outboundFlights.reduce((accumulator, flight) => {
-        const dateKey = toIsoDate(flight.gioKhoiHanh);
-        if (!dateKey) return accumulator;
-        if (!accumulator[dateKey]) {
-          accumulator[dateKey] = {
-            count: 0,
-            minPrice: 0,
-          };
-        }
+  const datePrices = useMemo(() => {
+    return calendarFlights.reduce((accumulator, flight) => {
+      const dateKey = toIsoDate(flight.gioKhoiHanh);
+      if (!dateKey || dateKey < today) return accumulator;
 
-        const lowestPrice = getLowestPrice(flight);
-        accumulator[dateKey].count += 1;
-        accumulator[dateKey].minPrice =
-          accumulator[dateKey].minPrice === 0
-            ? lowestPrice
-            : Math.min(accumulator[dateKey].minPrice, lowestPrice);
+      if (!accumulator[dateKey]) {
+        accumulator[dateKey] = { count: 0, minPrice: 0 };
+      }
 
-        return accumulator;
-      }, {});
+      const lowestPrice = getLowestPrice(flight);
+      accumulator[dateKey].count += 1;
+      accumulator[dateKey].minPrice =
+        accumulator[dateKey].minPrice === 0
+          ? lowestPrice
+          : Math.min(accumulator[dateKey].minPrice, lowestPrice);
 
-      setDatePrices(grouped);
-      return () => {
-        active = false;
-      };
-    }
+      return accumulator;
+    }, {});
+  }, [calendarFlights, today]);
 
-    const dates = Array.from({ length: 5 }, (_, index) => addDays(selectedDate, index - 2));
+  const departureAvailableDates = useMemo(
+    () =>
+      new Set(
+        Object.keys(datePrices)
+          .filter((date) => date >= today && Number(datePrices[date]?.count || 0) > 0)
+      ),
+    [datePrices, today]
+  );
 
-    Promise.all(
-      dates.map((date) =>
-        publicFlightService
-          .searchFlights({
-            maSanBayDi: fromCode || undefined,
-            maSanBayDen: toCode || undefined,
-            ngayDi: date,
-          })
-          .then((data) => {
-            const flights = Array.isArray(data.flights) ? data.flights : [];
-            const prices = flights.map(getLowestPrice).filter((price) => price > 0);
-            return [
-              date,
-              {
-                count: flights.length,
-                minPrice: prices.length ? Math.min(...prices) : 0,
-              },
-            ];
-          })
-          .catch(() => [date, { count: 0, minPrice: 0 }])
-      )
-    ).then((entries) => {
-      if (active) setDatePrices(Object.fromEntries(entries));
+  const sortedDepartureAvailableDates = useMemo(
+    () => [...departureAvailableDates].sort(),
+    [departureAvailableDates]
+  );
+
+  const returnAvailableDates = useMemo(() => {
+    const minimumReturnDate = getMinimumReturnDate(selectedDate);
+    const dates = new Set();
+
+    returnCalendarFlights.forEach((flight) => {
+      const date = toIsoDate(flight.gioKhoiHanh);
+      if (!date) return;
+
+      if (!minimumReturnDate || date >= minimumReturnDate) {
+        dates.add(date);
+      }
     });
 
-    return () => {
-      active = false;
-    };
-  }, [fromCode, toCode, selectedDate, outboundFlights]);
+    return dates;
+  }, [returnCalendarFlights, selectedDate]);
+
+  const sortedReturnAvailableDates = useMemo(
+    () => [...returnAvailableDates].sort(),
+    [returnAvailableDates]
+  );
+
+  useEffect(() => {
+    if (tripType !== "roundtrip" || selectedDate || sortedDepartureAvailableDates.length === 0) return;
+
+    const firstDepartureDate = sortedDepartureAvailableDates[0];
+    setSelectedDate(firstDepartureDate);
+    setDepartureCalendarMonth(getMonthStart(firstDepartureDate));
+    pendingCenterDateRef.current = firstDepartureDate;
+
+    updateSearchParams({
+      date: firstDepartureDate,
+      tripType: "roundtrip",
+    });
+  }, [tripType, selectedDate, sortedDepartureAvailableDates]);
+
+  useEffect(() => {
+    if (tripType !== "roundtrip" || !selectedDate || returnCalendarLoading) return;
+
+    const firstAvailableDate = sortedReturnAvailableDates[0] || "";
+
+    if (!firstAvailableDate) {
+      if (returnDate) setReturnDate("");
+      return;
+    }
+
+    if (!returnAvailableDates.has(returnDate)) {
+      setReturnDate(firstAvailableDate);
+      setReturnCalendarMonth(getMonthStart(firstAvailableDate));
+    }
+  }, [
+    tripType,
+    selectedDate,
+    returnCalendarLoading,
+    sortedReturnAvailableDates,
+    returnAvailableDates,
+    returnDate,
+  ]);
+
 
   const allFlights = useMemo(
     () => [...outboundFlights, ...(tripType === "roundtrip" ? returnFlights : [])],
@@ -508,28 +711,27 @@ export default function FlightSelectionPage() {
   );
   const seatLabels = useMemo(() => getAllSeatLabels(allFlights), [allFlights]);
 
-  useEffect(() => {
-    const { max } = getPriceBounds(allFlights);
-    setMaxAllowedPrice(max);
-    setSelectedMaxPrice((current) =>
-      isPriceFilterActive && current && current <= max ? current : max
-    );
-  }, [allFlights, isPriceFilterActive]);
-
   const applyFilters = (flights) =>
     flights.filter((flight) => {
-      const lowestPrice = getLowestPrice(flight);
       const airlineMatched = !selectedAirlines.length || selectedAirlines.includes(flight.hangBay);
-      const departureMatched = matchesDepartureFilter(flight, departureFilters);
       const seatMatched = matchesSeatClassFilter(flight, selectedSeatClasses);
-      const priceMatched = !isPriceFilterActive || lowestPrice <= selectedMaxPrice;
-      return airlineMatched && departureMatched && seatMatched && priceMatched;
+      return airlineMatched && seatMatched;
     });
 
-  const filteredOutboundFlights = applyFilters(outboundFlights).sort(
-    (left, right) => getLowestPrice(left) - getLowestPrice(right)
-  );
-  const filteredReturnFlights = applyFilters(returnFlights);
+  const sortFlights = (flights) => {
+    const sortedFlights = [...flights];
+
+    if (sortOrder === "price-asc") {
+      sortedFlights.sort((left, right) => getLowestPrice(left) - getLowestPrice(right));
+    } else if (sortOrder === "price-desc") {
+      sortedFlights.sort((left, right) => getLowestPrice(right) - getLowestPrice(left));
+    }
+
+    return sortedFlights;
+  };
+
+  const filteredOutboundFlights = sortFlights(applyFilters(outboundFlights));
+  const filteredReturnFlights = sortFlights(applyFilters(returnFlights));
   const totalFlightsFound = filteredOutboundFlights.length + (tripType === "roundtrip" ? filteredReturnFlights.length : 0);
   const totalOutboundPages = Math.max(1, Math.ceil(filteredOutboundFlights.length / FLIGHTS_PER_PAGE));
   const paginatedOutboundFlights = filteredOutboundFlights.slice(
@@ -539,40 +741,91 @@ export default function FlightSelectionPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [fromCode, toCode, selectedDate, selectedAirlines, selectedSeatClasses, departureFilters, selectedMaxPrice]);
+  }, [fromCode, toCode, selectedDate, selectedAirlines, selectedSeatClasses, sortOrder]);
 
   useEffect(() => {
     if (currentPage > totalOutboundPages) setCurrentPage(totalOutboundPages);
   }, [currentPage, totalOutboundPages]);
 
-  const dateOptions = selectedDate
-    ? Array.from({ length: 5 }, (_, index) => {
-        const date = addDays(selectedDate, index - 2);
+  const dateOptions = useMemo(
+    () =>
+      Array.from({ length: DATE_RAIL_DAYS }, (_, index) => {
+        const date = addDays(railStartDate, index);
         return {
           date,
           label: formatShortDate(date),
           ...datePrices[date],
         };
-      })
-    : (() => {
-        const datesWithFlights = Object.keys(datePrices);
-        if (!datesWithFlights.length) return [];
+      }),
+    [railStartDate, datePrices]
+  );
 
-        const cheapestDate = datesWithFlights.reduce((bestDate, date) => {
-          const bestPrice = datePrices[bestDate]?.minPrice || Infinity;
-          const currentPrice = datePrices[date]?.minPrice || Infinity;
-          return currentPrice < bestPrice || (currentPrice === bestPrice && date < bestDate) ? date : bestDate;
-        }, datesWithFlights[0]);
+  const centerDateInRail = useCallback((date, behavior = "smooth") => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const rail = dateRailRef.current;
+        const chip = dateChipRefs.current.get(date);
+        if (!rail || !chip) return;
 
-        return Array.from({ length: 6 }, (_, index) => {
-          const date = addDays(cheapestDate, index);
-          return {
-            date,
-            label: formatShortDate(date),
-            ...datePrices[date],
-          };
-        });
-      })();
+        const railRect = rail.getBoundingClientRect();
+        const chipRect = chip.getBoundingClientRect();
+        const targetLeft =
+          rail.scrollLeft +
+          (chipRect.left - railRect.left) -
+          (rail.clientWidth - chipRect.width) / 2;
+
+        const maximumLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+        const safeLeft = Math.max(0, Math.min(targetLeft, maximumLeft));
+
+        rail.scrollTo({ left: safeLeft, behavior });
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const pendingDate = pendingCenterDateRef.current;
+    if (!pendingDate || !dateOptions.some((option) => option.date === pendingDate)) return;
+
+    centerDateInRail(pendingDate);
+    pendingCenterDateRef.current = "";
+  }, [dateOptions, centerDateInRail]);
+
+  useEffect(() => {
+    if (
+      initialRailCenteredRef.current ||
+      hasUserInteractedWithRailRef.current ||
+      selectedDate ||
+      calendarFlights.length === 0
+    ) {
+      return;
+    }
+
+    const firstAvailableDate = Object.keys(datePrices)
+      .filter((date) => date >= today)
+      .sort()[0];
+
+    if (!firstAvailableDate) return;
+
+    if (!isDateInsideRail(firstAvailableDate, railStartDate)) {
+      setRailStartDate(getRailStartDate(firstAvailableDate, today));
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (hasUserInteractedWithRailRef.current) return;
+      centerDateInRail(firstAvailableDate, "auto");
+      initialRailCenteredRef.current = true;
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    calendarFlights,
+    datePrices,
+    selectedDate,
+    railStartDate,
+    today,
+    centerDateInRail,
+  ]);
 
   const toggleAirline = (airline) => {
     setSelectedAirlines((current) =>
@@ -586,24 +839,12 @@ export default function FlightSelectionPage() {
     );
   };
 
-  const toggleDepartureWindow = (windowKey) => {
-    setDepartureFilters((current) =>
-      current.includes(windowKey) ? current.filter((item) => item !== windowKey) : [...current, windowKey]
-    );
-  };
 
-  const hasActiveFilters =
-    selectedAirlines.length > 0 ||
-    selectedSeatClasses.length > 0 ||
-    departureFilters.length > 0 ||
-    isPriceFilterActive;
+  const hasActiveFilters = selectedAirlines.length > 0 || selectedSeatClasses.length > 0;
 
   const clearFilters = () => {
     setSelectedAirlines([]);
     setSelectedSeatClasses([]);
-    setDepartureFilters([]);
-    setSelectedMaxPrice(maxAllowedPrice);
-    setIsPriceFilterActive(false);
     setCurrentPage(1);
   };
 
@@ -627,9 +868,156 @@ export default function FlightSelectionPage() {
     navigate(`/flight-selection?${params.toString()}`);
   };
 
+  const ensureDateVisibleInRail = (date) => {
+    if (!date || isDateInsideRail(date, railStartDate)) return;
+    setRailStartDate(getRailStartDate(date, today));
+  };
+
+  const handleDepartureDateChange = (value) => {
+    if (!value) {
+      setSelectedDate("");
+      updateSearchParams({ date: "" });
+      return;
+    }
+
+    const nextDate = normalizeDepartureDate(value, today);
+    setDepartureCalendarMonth(getMonthStart(nextDate));
+    let nextReturnDate = returnDate;
+
+    if (tripType === "roundtrip") {
+      nextReturnDate = normalizeReturnDate(returnDate, nextDate);
+      setReturnDate(nextReturnDate);
+    }
+
+    const alreadyVisibleInRail = isDateInsideRail(nextDate, railStartDate);
+    ensureDateVisibleInRail(nextDate);
+    pendingCenterDateRef.current = nextDate;
+    setSelectedDate(nextDate);
+
+    if (alreadyVisibleInRail) {
+      centerDateInRail(nextDate);
+      pendingCenterDateRef.current = "";
+    }
+    updateSearchParams({
+      date: nextDate,
+      returnDate: tripType === "roundtrip" ? nextReturnDate : "",
+    });
+  };
+
+  const handleReturnDateChange = (value) => {
+    if (!value || !selectedDate || !returnAvailableDates.has(value)) return;
+    setReturnDate(value);
+    setReturnCalendarMonth(getMonthStart(value));
+    updateSearchParams({ returnDate: value });
+  };
+
+  const handleTripTypeChange = (nextTripType) => {
+    let nextDepartureDate = selectedDate;
+    let nextReturnDate = returnDate;
+
+    if (nextTripType === "roundtrip") {
+      if (!nextDepartureDate && sortedDepartureAvailableDates.length > 0) {
+        nextDepartureDate = sortedDepartureAvailableDates[0];
+        setSelectedDate(nextDepartureDate);
+        setDepartureCalendarMonth(getMonthStart(nextDepartureDate));
+        pendingCenterDateRef.current = nextDepartureDate;
+      }
+
+      const minimumReturnDate = getMinimumReturnDate(nextDepartureDate);
+      const validReturnDates = returnCalendarFlights
+        .map((flight) => toIsoDate(flight.gioKhoiHanh))
+        .filter((date) => date && minimumReturnDate && date >= minimumReturnDate)
+        .sort();
+
+      nextReturnDate =
+        validReturnDates.includes(returnDate)
+          ? returnDate
+          : validReturnDates[0] || "";
+
+      setReturnDate(nextReturnDate);
+      setReturnCalendarMonth(
+        getMonthStart(nextReturnDate || minimumReturnDate || today)
+      );
+    }
+
+    setTripType(nextTripType);
+    updateSearchParams({
+      tripType: nextTripType,
+      date: nextDepartureDate || "",
+      returnDate: nextTripType === "roundtrip" ? nextReturnDate : "",
+    });
+  };
+
   const handleSelectDate = (date) => {
-    setSelectedDate(date);
-    updateSearchParams({ date });
+    if (suppressRailClickRef.current) return;
+    handleDepartureDateChange(date);
+  };
+
+  const handleRailPointerDown = (event) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+
+    const rail = dateRailRef.current;
+    if (!rail) return;
+
+    railDragRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      scrollLeft: rail.scrollLeft,
+      moved: false,
+      date: event.target.closest(".flight-selection-date-chip")?.dataset?.date || "",
+    };
+
+    setIsRailDragging(true);
+    rail.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleRailPointerMove = (event) => {
+    const rail = dateRailRef.current;
+    const drag = railDragRef.current;
+    if (!rail || !drag.active || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    if (Math.abs(deltaX) > 4) {
+      drag.moved = true;
+      suppressRailClickRef.current = true;
+      hasUserInteractedWithRailRef.current = true;
+    }
+
+    rail.scrollLeft = drag.scrollLeft - deltaX;
+    if (drag.moved) event.preventDefault();
+  };
+
+  const finishRailDrag = (event) => {
+    const rail = dateRailRef.current;
+    const drag = railDragRef.current;
+    if (!drag.active || drag.pointerId !== event.pointerId) return;
+
+    const clickedDate = !drag.moved ? drag.date : "";
+
+    if (rail?.hasPointerCapture?.(event.pointerId)) {
+      rail.releasePointerCapture(event.pointerId);
+    }
+
+    railDragRef.current = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      scrollLeft: rail?.scrollLeft || 0,
+      moved: false,
+      date: "",
+    };
+
+    setIsRailDragging(false);
+
+    if (clickedDate) {
+      suppressRailClickRef.current = true;
+      handleDepartureDateChange(clickedDate);
+    }
+
+    window.setTimeout(() => {
+      suppressRailClickRef.current = false;
+    }, 0);
   };
 
   const handleSelectFlight = (flight, seatClass) => {
@@ -662,6 +1050,30 @@ export default function FlightSelectionPage() {
 
         <section className="flight-selection-hero">
           <div className="flight-selection-hero-copy">
+            <a
+              href="/"
+              style={{
+                position: "relative",
+                zIndex: 9999,
+                pointerEvents: "auto",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                margin: "0 0 1rem",
+                padding: "0.25rem 0",
+                border: 0,
+                background: "transparent",
+                color: "rgba(255,255,255,0.88)",
+                font: "inherit",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                textDecoration: "none",
+              }}
+            >
+              <MaterialIcon name="arrow_back" />
+              Quay về trang chủ
+            </a>
             <p className="flight-selection-overline">Flight Selection</p>
             <h1>
               {fromCode || toCode ? (
@@ -675,9 +1087,6 @@ export default function FlightSelectionPage() {
               {selectedSeatClasses[0] || "Economy"}
             </p>
           </div>
-          <button type="button" className="flight-selection-hero-button" onClick={() => navigate("/")}>
-            Modify Search
-          </button>
         </section>
 
         <main className="flight-selection-content">
@@ -704,13 +1113,7 @@ export default function FlightSelectionPage() {
                         key={item.key}
                         type="button"
                         className={`flight-selection-choice-chip${tripType === item.key ? " is-active" : ""}`}
-                        onClick={() => {
-                          setTripType(item.key);
-                          updateSearchParams({
-                            tripType: item.key,
-                            returnDate: item.key === "roundtrip" ? returnDate : "",
-                          });
-                        }}
+                        onClick={() => handleTripTypeChange(item.key)}
                       >
                         {item.label}
                       </button>
@@ -718,33 +1121,204 @@ export default function FlightSelectionPage() {
                   </div>
                 </div>
 
-                <div className="flight-selection-filter-group">
+                <div className="flight-selection-filter-group flight-selection-travel-dates-group">
                   <h3>Travel Dates</h3>
-                  <div className="flight-selection-date-fields">
-                    <label className="flight-selection-input-group">
-                      <span>Ngày đi</span>
-                      <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(event) => {
-                          setSelectedDate(event.target.value);
-                          updateSearchParams({ date: event.target.value });
-                        }}
-                      />
-                    </label>
-                    {tripType === "roundtrip" && (
-                      <label className="flight-selection-input-group">
-                        <span>Ngày về</span>
-                        <input
-                          type="date"
-                          min={selectedDate}
-                          value={returnDate}
-                          onChange={(event) => {
-                            setReturnDate(event.target.value);
-                            updateSearchParams({ returnDate: event.target.value });
-                          }}
+
+                  <div className={`flight-selection-date-calendars${tripType === "roundtrip" ? " is-roundtrip" : ""}`}>
+                    <div className={`flight-selection-date-calendar${departureCalendarOpen ? " is-open" : ""}`}>
+                      <button
+                        type="button"
+                        className="flight-selection-date-calendar-summary"
+                        onClick={() => setDepartureCalendarOpen((current) => !current)}
+                        aria-expanded={departureCalendarOpen}
+                      >
+                        <div className="flight-selection-date-calendar-label">
+                          <div>
+                            <span>Ngày đi</span>
+                            <strong>{formatCalendarTitle(selectedDate, "Chọn ngày đi")}</strong>
+                          </div>
+                          <MaterialIcon name="flight_takeoff" />
+                        </div>
+
+                        <MaterialIcon
+                          name={departureCalendarOpen ? "keyboard_arrow_up" : "keyboard_arrow_down"}
                         />
-                      </label>
+                      </button>
+
+                      <div className="flight-selection-date-calendar-collapse">
+                        <div className="flight-selection-date-calendar-body">
+                          <div className="flight-selection-date-calendar-header">
+                            <button
+                              type="button"
+                              onClick={() => setDepartureCalendarMonth((current) => addMonths(current, -1))}
+                              aria-label="Tháng trước"
+                            >
+                              <MaterialIcon name="chevron_left" />
+                            </button>
+
+                            <strong>
+                              {departureCalendarMonth.toLocaleDateString("vi-VN", {
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </strong>
+
+                            <button
+                              type="button"
+                              onClick={() => setDepartureCalendarMonth((current) => addMonths(current, 1))}
+                              aria-label="Tháng sau"
+                            >
+                              <MaterialIcon name="chevron_right" />
+                            </button>
+                          </div>
+
+                          <div className="flight-selection-date-calendar-weekdays">
+                            {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((label) => (
+                              <span key={label}>{label}</span>
+                            ))}
+                          </div>
+
+                          <div className="flight-selection-date-calendar-days">
+                            {buildMonthDays(departureCalendarMonth).map((date, index) => {
+                              if (!date) {
+                                return <span key={`departure-empty-${index}`} className="is-empty" />;
+                              }
+
+                              const available = departureAvailableDates.has(date);
+                              const active = date === selectedDate;
+
+                              return (
+                                <button
+                                  key={date}
+                                  type="button"
+                                  disabled={!available}
+                                  className={`${available ? "is-available" : "is-disabled"}${active ? " is-active" : ""}`}
+                                  onClick={() => {
+                                    if (!available) return;
+                                    handleDepartureDateChange(date);
+                                    setDepartureCalendarOpen(false);
+                                  }}
+                                  title={available ? `${datePrices[date]?.count || 0} chuyến bay` : "Không có chuyến bay"}
+                                >
+                                  <span>{new Date(`${date}T00:00:00`).getDate()}</span>
+                                  {available && <small>{datePrices[date]?.count || 0}</small>}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flight-selection-date-calendar-footer">
+                            Ngày có chuyến {fromCode || "điểm đi"} → {toCode || "điểm đến"} mới có thể chọn.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {tripType === "roundtrip" && (
+                      <div className={`flight-selection-date-calendar${returnCalendarOpen ? " is-open" : ""}`}>
+                        <button
+                          type="button"
+                          className="flight-selection-date-calendar-summary"
+                          onClick={() => setReturnCalendarOpen((current) => !current)}
+                          aria-expanded={returnCalendarOpen}
+                        >
+                          <div className="flight-selection-date-calendar-label">
+                            <div>
+                              <span>Ngày về</span>
+                              <strong>
+                                {returnCalendarLoading
+                                  ? "Đang tải..."
+                                  : formatCalendarTitle(returnDate, "Chọn ngày về")}
+                              </strong>
+                            </div>
+                            <MaterialIcon name="flight_land" />
+                          </div>
+
+                          <MaterialIcon
+                            name={returnCalendarOpen ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+                          />
+                        </button>
+
+                        <div className="flight-selection-date-calendar-collapse">
+                          <div className="flight-selection-date-calendar-body">
+                            <div className="flight-selection-date-calendar-header">
+                              <button
+                                type="button"
+                                onClick={() => setReturnCalendarMonth((current) => addMonths(current, -1))}
+                                aria-label="Tháng trước"
+                              >
+                                <MaterialIcon name="chevron_left" />
+                              </button>
+
+                              <strong>
+                                {returnCalendarMonth.toLocaleDateString("vi-VN", {
+                                  month: "long",
+                                  year: "numeric",
+                                })}
+                              </strong>
+
+                              <button
+                                type="button"
+                                onClick={() => setReturnCalendarMonth((current) => addMonths(current, 1))}
+                                aria-label="Tháng sau"
+                              >
+                                <MaterialIcon name="chevron_right" />
+                              </button>
+                            </div>
+
+                            <div className="flight-selection-date-calendar-weekdays">
+                              {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((label) => (
+                                <span key={label}>{label}</span>
+                              ))}
+                            </div>
+
+                            <div className="flight-selection-date-calendar-days">
+                              {buildMonthDays(returnCalendarMonth).map((date, index) => {
+                                if (!date) {
+                                  return <span key={`return-empty-${index}`} className="is-empty" />;
+                                }
+
+                                const available =
+                                  Boolean(selectedDate) &&
+                                  !returnCalendarLoading &&
+                                  returnAvailableDates.has(date);
+                                const active = date === returnDate;
+
+                                return (
+                                  <button
+                                    key={date}
+                                    type="button"
+                                    disabled={!available}
+                                    className={`${available ? "is-available" : "is-disabled"}${active ? " is-active" : ""}`}
+                                    onClick={() => {
+                                      if (!available) return;
+                                      handleReturnDateChange(date);
+                                      setReturnCalendarOpen(false);
+                                    }}
+                                    title={
+                                      available
+                                        ? `Có chuyến ${toCode} → ${fromCode}`
+                                        : selectedDate
+                                          ? "Không có chuyến về khả dụng"
+                                          : "Chọn ngày đi trước"
+                                    }
+                                  >
+                                    <span>{new Date(`${date}T00:00:00`).getDate()}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <div className="flight-selection-date-calendar-footer">
+                              {!selectedDate
+                                ? "Chọn ngày đi để mở các ngày về hợp lệ."
+                                : sortedReturnAvailableDates.length === 0 && !returnCalendarLoading
+                                  ? `Không có chuyến ${toCode} → ${fromCode} sau ngày đi.`
+                                  : `Chỉ ngày có chuyến ${toCode} → ${fromCode} sau ngày đi mới có thể chọn.`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -761,25 +1335,6 @@ export default function FlightSelectionPage() {
                   </label>
                 </div>
 
-                <div className="flight-selection-filter-group">
-                  <h3>Departure Time</h3>
-                  <div className="flight-selection-time-grid">
-                    {DEPARTURE_WINDOWS.map((item) => {
-                      const active = departureFilters.includes(item.key);
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          className={`flight-selection-time-chip${active ? " is-active" : ""}`}
-                          onClick={() => toggleDepartureWindow(item.key)}
-                        >
-                          <span>{item.label}</span>
-                          <strong>{item.range}</strong>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 <div className="flight-selection-filter-group">
                   <h3>Seat Class</h3>
@@ -804,21 +1359,25 @@ export default function FlightSelectionPage() {
                 </div>
 
                 <div className="flight-selection-filter-group">
-                  <h3>Price Range</h3>
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxAllowedPrice || 1}
-                    value={selectedMaxPrice || 0}
-                    onChange={(event) => {
-                      setSelectedMaxPrice(Number(event.target.value));
-                      setIsPriceFilterActive(true);
+                  <h3>Sắp xếp theo giá</h3>
+                  <select
+                    value={sortOrder}
+                    onChange={(event) => setSortOrder(event.target.value)}
+                    style={{
+                      width: "100%",
+                      border: "1px solid var(--fs-line)",
+                      borderRadius: "0.9rem",
+                      padding: "0.9rem 1rem",
+                      background: "#fff",
+                      color: "var(--fs-text)",
+                      font: "inherit",
+                      cursor: "pointer",
                     }}
-                  />
-                  <div className="flight-selection-price-labels">
-                    <span>0 VND</span>
-                    <span>{formatCurrency(selectedMaxPrice || maxAllowedPrice || 0)}</span>
-                  </div>
+                  >
+                    <option value="default">Mặc định</option>
+                    <option value="price-asc">Giá thấp đến cao</option>
+                    <option value="price-desc">Giá cao đến thấp</option>
+                  </select>
                 </div>
 
                 <div className="flight-selection-filter-group">
@@ -855,13 +1414,31 @@ export default function FlightSelectionPage() {
             </section>
 
             <section className="flight-selection-results">
-              <div className="flight-selection-date-rail custom-scrollbar">
+              <div
+                ref={dateRailRef}
+                className="flight-selection-date-rail custom-scrollbar"
+                onPointerDown={handleRailPointerDown}
+                onPointerMove={handleRailPointerMove}
+                onPointerUp={finishRailDrag}
+                onPointerCancel={finishRailDrag}
+                style={{
+                  cursor: isRailDragging ? "grabbing" : "grab",
+                  userSelect: isRailDragging ? "none" : "auto",
+                  touchAction: "pan-x",
+                  scrollBehavior: "auto",
+                }}
+              >
                 {dateOptions.map((option) => {
                   const active = option.date === selectedDate;
                   return (
                     <button
                       key={option.date}
+                      ref={(node) => {
+                        if (node) dateChipRefs.current.set(option.date, node);
+                        else dateChipRefs.current.delete(option.date);
+                      }}
                       type="button"
+                      data-date={option.date}
                       className={`flight-selection-date-chip${active ? " is-active" : ""}`}
                       onClick={() => handleSelectDate(option.date)}
                     >
@@ -871,20 +1448,6 @@ export default function FlightSelectionPage() {
                     </button>
                   );
                 })}
-                {!!selectedDate && (
-                  <button
-                    type="button"
-                    className="flight-selection-date-chip flight-selection-date-chip-clear"
-                    onClick={() => {
-                      setSelectedDate("");
-                      updateSearchParams({ date: "" });
-                    }}
-                  >
-                    <span>Bỏ lọc</span>
-                    <strong>Tất cả</strong>
-                    <small>Hiển thị mọi ngày</small>
-                  </button>
-                )}
               </div>
 
               <FlightListSection
@@ -897,7 +1460,7 @@ export default function FlightSelectionPage() {
                 totalCount={filteredOutboundFlights.length}
                 loading={outboundLoading}
                 error={outboundError}
-                emptyMessage="Hãy thử đổi ngày bay, khung giờ hoặc mức giá để xem thêm lựa chọn."
+                emptyMessage="Hãy thử đổi ngày bay, hạng ghế hoặc hãng bay để xem thêm lựa chọn."
                 onSelectFlight={handleSelectFlight}
               />
 

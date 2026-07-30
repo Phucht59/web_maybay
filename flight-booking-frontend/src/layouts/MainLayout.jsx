@@ -20,10 +20,10 @@ const MaterialIcon = ({ name, fill = false }) => (
 const NAV_ITEMS = [
   { icon: "explore", label: "Khám Phá", to: "/" },
   { icon: "confirmation_number", label: "Mua vé", to: "/flight-selection" },
-  { icon: "card_membership", label: "Dịch vụ bổ trợ", to: "#" },
+  { icon: "card_membership", label: "Dịch vụ bổ trợ", to: "/additional-services" },
   { icon: "map", label: "Hành trình", to: "#" },
-  { icon: "flight_takeoff", label: "Trải nghiệm bay", to: "#" },
-  { icon: "star", label: "Lotusmiles", to: "#" },
+  { icon: "flight_takeoff", label: "Trải nghiệm bay", to: "/flight-experience" },
+  { icon: "star", label: "Lotusmiles", to: "/lotusmiles" },
 ];
 
 function MainLayout() {
@@ -84,17 +84,7 @@ function MainLayout() {
         className={`top-bar ${scrolled ? "top-bar-solid" : ""}${isTopBarHidden ? " is-hidden" : ""}`}
         style={{ zIndex: 1000 }}
       >
-        <div className="top-bar-left">
-          <div className="search-box">
-            <MaterialIcon name="search" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm"
-              className={`search-input ${scrolled ? "search-input-dark" : ""}`}
-            />
-          </div>
-        </div>
-        <div className="top-bar-right">
+        <div className="top-bar-right" style={{ marginLeft: "auto" }}>
           <div className="lang-switcher">
             <img
               alt="Vietnam Flag"
