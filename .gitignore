@@ -7,3 +7,6 @@ obj/
 *.sln.docstates
 *.db-shm
 *.db-wal
+.agents/
+node_modules/
+dist/
